@@ -3,17 +3,16 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookingApi", "BookingApi\BookingApi.csproj", "{FEADAA55-7072-4448-AD67-9593A186FC01}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BookingApi", "BookingApi\BookingApi.csproj", "{FEADAA55-7072-4448-AD67-9593A186FC01}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookingApi.Infrastructure", "BookingApi.Infrastructure\BookingApi.Infrastructure.csproj", "{B84C87EE-BB01-4CAB-8B04-D9B07E2460AF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BookingApi.Infrastructure", "BookingApi.Infrastructure\BookingApi.Infrastructure.csproj", "{B84C87EE-BB01-4CAB-8B04-D9B07E2460AF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BookingApi.Domain", "BookingApi.Domain\BookingApi.Domain.csproj", "{9EE7C407-591B-4B30-A6DD-1503EF2A402E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{FEADAA55-7072-4448-AD67-9593A186FC01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -24,5 +23,15 @@ Global
 		{B84C87EE-BB01-4CAB-8B04-D9B07E2460AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B84C87EE-BB01-4CAB-8B04-D9B07E2460AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B84C87EE-BB01-4CAB-8B04-D9B07E2460AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9EE7C407-591B-4B30-A6DD-1503EF2A402E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9EE7C407-591B-4B30-A6DD-1503EF2A402E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9EE7C407-591B-4B30-A6DD-1503EF2A402E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9EE7C407-591B-4B30-A6DD-1503EF2A402E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A97A1047-B1C0-4B3F-9443-810975CA3E04}
 	EndGlobalSection
 EndGlobal

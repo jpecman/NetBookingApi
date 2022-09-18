@@ -9,8 +9,8 @@ namespace BookingApi.Domain;
 
 public class BookingManager 
 {
-    public Task<Either<Error, Booking>> Create(Booking booking)
-    {
-        return Task.FromResult(new Error(ErrorType.General));
-    }
+    //public Task<Either<Error, Booking>> Create(Booking booking)
+    //{
+    //    return Task.FromResult(new Error(ErrorType.General));
+    //}
 }
