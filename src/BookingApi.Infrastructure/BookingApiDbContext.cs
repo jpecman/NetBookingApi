@@ -1,10 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-using BookingApi.Domain.Entities;
+using BookingApi.Infrastructure.DbEntities;
 
 namespace BookingApi.Infrastructure;
 
 public class BookingApiDbContext : DbContext
 {
-    public DbSet<Booking> Bookings { get; set; }
+    public BookingApiDbContext(DbContextOptions options) : base(options)
+    { 
+    }
+
+    public DbSet<BookingDb> Bookings { get; set; }
 }

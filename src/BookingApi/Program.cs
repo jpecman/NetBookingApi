@@ -1,4 +1,7 @@
+using BookingApi.Domain;
+using BookingApi.Domain.Repositories;
 using BookingApi.Infrastructure;
+using BookingApi.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +17,9 @@ string connectionString = builder.Configuration["CONNECTION_STRING"];
 
 builder.Services.AddDbContext<BookingApiDbContext>(
     options => options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+builder.Services.AddScoped<IBookingManager, BookingManager>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 
 var app = builder.Build();
 

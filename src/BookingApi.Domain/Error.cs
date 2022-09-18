@@ -1,13 +1,15 @@
+using System.Net.NetworkInformation;
+
 namespace BookingApi.Domain;
 
-public class Error
-{
-    public Error(ErrorType errorType)
-    {
-        ErrorType = errorType;
-    }
+public record Error
+(
+    ErrorType ErrorType,
 
-    public ErrorType ErrorType { get; }
+    string Message
+)
+{
+    public static Error Create(ErrorType errorType) => new Error(errorType, string.Empty);
 }
 
 public enum ErrorType
