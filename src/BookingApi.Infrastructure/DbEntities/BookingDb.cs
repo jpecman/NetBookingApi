@@ -14,9 +14,11 @@ namespace BookingApi.Infrastructure.DbEntities
 
         public string Name { get; set; }
 
-        public DateTime From { get; set; }
+        public DateOnly Date { get; set; }
 
-        public DateTime To { get; set; }
+        public TimeOnly From { get; set; }
+
+        public TimeOnly To { get; set; }
 
         public decimal Price { get; set; }
     }
@@ -29,6 +31,7 @@ namespace BookingApi.Infrastructure.DbEntities
             (
                 entity.Id,
                 entity.Name,
+                entity.Date,
                 entity.From,
                 entity.To,
                 entity.Price
@@ -41,6 +44,7 @@ namespace BookingApi.Infrastructure.DbEntities
             {
                 Id = domain.Id,
                 Name = domain.Name,
+                Date = domain.Date,
                 From = domain.From,
                 To = domain.To,
                 Price = domain.Price

@@ -4,7 +4,8 @@ public record Booking
 (
     Guid Id,
     string Name,
-    DateTime From,
-    DateTime To,
+    DateOnly Date,
+    TimeOnly From,
+    TimeOnly To,
     decimal Price
 );

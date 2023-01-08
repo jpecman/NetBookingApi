@@ -15,6 +15,14 @@ public static class BookingRequestExtensions
 {
     public static Booking ToDomain(this BookingRequest request)
     {
-        return new Booking(Guid.Empty, request.Name, request.From, request.To, request.Price);
+        return new Booking
+        (
+            Guid.Empty,
+            request.Name,
+            DateOnly.FromDateTime(request.From.Date),
+            TimeOnly.FromDateTime(request.From),
+            TimeOnly.FromDateTime(request.To),
+            request.Price
+        );
     }
 }

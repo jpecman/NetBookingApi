@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BookingApi.Infrastructure.Migrations
 {
     [DbContext(typeof(BookingApiDbContext))]
-    [Migration("20220918155747_Initial")]
-    partial class Initial
+    [Migration("20230108205702_Init")]
+    partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -27,8 +27,11 @@ namespace BookingApi.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<DateTime>("From")
-                        .HasColumnType("datetime(6)");
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly>("From")
+                        .HasColumnType("time(6)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -37,8 +40,8 @@ namespace BookingApi.Infrastructure.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<DateTime>("To")
-                        .HasColumnType("datetime(6)");
+                    b.Property<TimeOnly>("To")
+                        .HasColumnType("time(6)");
 
                     b.HasKey("Id");
 

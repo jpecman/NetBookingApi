@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BookingApi.Domain\BookingApi.Domain.csproj" />
     <ProjectReference Include="..\BookingApi.Infrastructure\BookingApi.Infrastructure.csproj" />
   </ItemGroup>
 

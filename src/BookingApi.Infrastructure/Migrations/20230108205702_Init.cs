@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace BookingApi.Infrastructure.Migrations
 {
-    public partial class Initial : Migration
+    public partial class Init : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -19,8 +19,9 @@ namespace BookingApi.Infrastructure.Migrations
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     Name = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    From = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    To = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Date = table.Column<DateOnly>(type: "date", nullable: false),
+                    From = table.Column<TimeOnly>(type: "time(6)", nullable: false),
+                    To = table.Column<TimeOnly>(type: "time(6)", nullable: false),
                     Price = table.Column<decimal>(type: "decimal(65,30)", nullable: false)
                 },
                 constraints: table =>

@@ -23,7 +23,9 @@ public class BookingController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<BookingResponse>> PostAsync([FromBody] BookingRequest booking)
     {
-        return HandleResponse(await _bookingManager.Create(booking.ToDomain()));
+        var createResponse = await _bookingManager.Create(booking.ToDomain());
+
+        return HandleResponse(createResponse, x => new BookingResponse(x.Id));
     }
 
     protected ActionResult HandleError(Error error)
@@ -36,10 +38,10 @@ public class BookingController : ControllerBase
         return BadRequest();
     }
 
-    protected ActionResult HandleResponse<T>(Either<Error, T> response)
+    protected ActionResult HandleResponse<Tin, Tout>(Either<Error, Tin> response, Func<Tin, Tout> toResponse)
     {
         return response.Match<ActionResult>(
-            model => Ok(model),
+            model => Ok(toResponse(model)),
             error => HandleError(error));
     }
 }

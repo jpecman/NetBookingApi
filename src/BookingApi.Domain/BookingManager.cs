@@ -1,8 +1,6 @@
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
 using LanguageExt;
-using System.Reflection.Metadata.Ecma335;
-using static LanguageExt.Prelude;
 
 namespace BookingApi.Domain;
 
@@ -20,36 +18,13 @@ public class BookingManager : IBookingManager
         _bookingRepository = bookingRepository;
     }
 
-    public async Task<Either<Error, Booking>> Create(Booking booking)
+    public Task<Either<Error, Booking>> Create(Booking booking)
     {
-        var repoResponse = await _bookingRepository.Create(booking);
-
-        if (repoResponse.IsLeft)
-        {
-            return repoResponse.LeftValue();
-        }
-
-        return Right(repoResponse.RightValue());
-
-        // return Left(new Error(ErrorType.General));
-    }
-}
-
-public static class LanguageExtensions
-{
-    public static L LeftValue<L, R>(this Either<L, R> either)
-    {
-        return either.Match(
-            r => throw new InvalidOperationException("Either is right."),
-            l => l
-        );
+        return _bookingRepository.Create(booking);
     }
 
-    public static R RightValue<L, R>(this Either<L, R> either)
-    {
-        return either.Match(
-            r => r,
-            l => throw new InvalidOperationException("Either is left.")
-        );
-    }
+    //private async Task<Either<Error, bool>> IsAvailableAsync(Booking booking)
+    //{
+    //    var repoResponse = await _bookingRepository.Get(new BookingSearch(booking.From.Date, booking.To.Date.AddDays(1), booking.Id));
+    //}
 }
