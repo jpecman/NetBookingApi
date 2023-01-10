@@ -19,20 +19,38 @@ namespace BookingApi.Tests
 
             var today = DateTime.Today;
 
-            var booking = CreateNewBooking("Test 1", DateOnly.FromDateTime(today), new TimeOnly(9), new TimeOnly(10, 30), 1500);
+            var booking = CreateNewBooking(
+                "Test 1",
+                DateOnly.FromDateTime(today),
+                new TimeOnly(9),
+                new TimeOnly(10, 30),
+                1500
+            );
 
             var result = await bookingManager.Create(booking);
 
             Assert.IsTrue(result.IsRight);
 
-            var duplicateBooking = CreateNewBooking("Test 1", DateOnly.FromDateTime(today), new TimeOnly(9), new TimeOnly(10, 30), 1500);
+            var duplicateBooking = CreateNewBooking(
+                "Test 1",
+                DateOnly.FromDateTime(today),
+                new TimeOnly(10),
+                new TimeOnly(11, 30),
+                1500
+            );
 
             result = await bookingManager.Create(duplicateBooking);
 
             Assert.IsTrue(result.IsLeft);
         }
 
-        private Booking CreateNewBooking(string name, DateOnly day, TimeOnly from, TimeOnly to, decimal price)
+        private Booking CreateNewBooking(
+            string name,
+            DateOnly day,
+            TimeOnly from,
+            TimeOnly to,
+            decimal price
+        )
         {
             return new Booking(Guid.Empty, name, day, from, to, price);
         }
