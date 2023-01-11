@@ -1,3 +1,4 @@
+using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
 using LanguageExt;
@@ -50,7 +51,7 @@ public class BookingManager : IBookingManager
         return repoResponse.Match<Either<Error, bool>>(
             bookings =>
             {
-                return bookings.Any(a => a.From <= booking.To && a.To >= booking.From);
+                return !bookings.Any(a => a.From <= booking.To && a.To >= booking.From);
             },
             error => error
         );

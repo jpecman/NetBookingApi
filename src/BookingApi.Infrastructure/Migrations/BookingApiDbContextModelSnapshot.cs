@@ -45,6 +45,33 @@ namespace BookingApi.Infrastructure.Migrations
 
                     b.ToTable("Bookings");
                 });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.ContactDb", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Contacts");
+                });
 #pragma warning restore 612, 618
         }
     }

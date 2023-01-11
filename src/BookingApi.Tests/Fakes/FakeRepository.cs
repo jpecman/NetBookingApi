@@ -1,4 +1,5 @@
-﻿using BookingApi.Domain;
+﻿using BookingApi.Common.Messaging;
+using BookingApi.Domain;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
 using LanguageExt;
@@ -15,7 +16,7 @@ namespace BookingApi.Tests.Fakes
 {
     internal class FakeRepository : IBookingRepository
     {
-        private readonly Dictionary<(DateOnly, TimeOnly, TimeOnly), Booking> _storage =
+        private readonly Dictionary<(DateOnly Date, TimeOnly From, TimeOnly To), Booking> _storage =
             new Dictionary<(DateOnly, TimeOnly, TimeOnly), Booking>();
 
         public async Task<Either<Error, Booking>> Create(Booking booking)
@@ -41,9 +42,9 @@ namespace BookingApi.Tests.Fakes
             foreach (var item in _storage)
             {
                 if (
-                    item.Key.Item1 == search.Date
-                    && item.Key.Item2 > search.From
-                    && item.Key.Item3 < search.To
+                    item.Key.Date == search.Date
+                    // && item.Key.From > search.From
+                    // && item.Key.To < search.To
                 )
                 {
                     matches.Add(item.Value);

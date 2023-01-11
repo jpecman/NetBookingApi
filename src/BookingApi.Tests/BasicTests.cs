@@ -22,7 +22,7 @@ namespace BookingApi.Tests
             var booking = CreateNewBooking(
                 "Test 1",
                 DateOnly.FromDateTime(today),
-                new TimeOnly(9),
+                new TimeOnly(9, 0),
                 new TimeOnly(10, 30),
                 1500
             );
@@ -34,7 +34,7 @@ namespace BookingApi.Tests
             var duplicateBooking = CreateNewBooking(
                 "Test 1",
                 DateOnly.FromDateTime(today),
-                new TimeOnly(10),
+                new TimeOnly(10, 0),
                 new TimeOnly(11, 30),
                 1500
             );

@@ -1,7 +1,7 @@
 
 using BookingApi.Domain.Entities;
 
-namespace BookingApi.Models;
+namespace BookingApi.Models.Bookings;
 
 public record BookingRequest(
     string Name,

@@ -20,6 +20,7 @@ builder.Services.AddDbContext<BookingApiDbContext>(
 
 builder.Services.AddScoped<IBookingManager, BookingManager>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddScoped<IContactRepository, ContactRepository>();
 
 var app = builder.Build();
 

@@ -1,4 +1,5 @@
-﻿using BookingApi.Domain.Entities;
+﻿using BookingApi.Common.Messaging;
+using BookingApi.Domain.Entities;
 using LanguageExt;
 using System;
 using System.Collections.Generic;
