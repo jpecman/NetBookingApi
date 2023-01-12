@@ -20,8 +20,16 @@ public class BookingController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<BookingResponse>> PostAsync([FromBody] BookingRequest booking)
     {
-        var createResponse = await _bookingManager.Create(booking.ToDomain());
+        var createResponse = await _bookingManager.CreateAsync(booking.ToDomain());
 
-        return HandleResponse(createResponse, x => new BookingResponse(x.Id));
+        return HandleResponse(createResponse, x => x.ToResponse());
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<BookingResponse>> GetAsync([FromRoute] Guid id)
+    {
+        var getResponse = await _bookingManager.GetAsync(id);
+
+        return HandleResponse(getResponse, x => x.ToResponse());
     }
 }

@@ -56,5 +56,17 @@ namespace BookingApi.Infrastructure.Repositories
                 return CreateErrorResponse<ImmutableArray<Booking>>(ex, ErrorType.General);
             }
         }
+
+        public async Task<Either<Error, Booking>> Get(Guid id)
+        {
+            Func<Guid, Task<Booking>> func = async bId =>
+            {
+                var entity = await _dbContext.Bookings.FirstAsync(x => x.Id == bId);
+
+                return entity.ToDomain();
+            };
+
+            return await Execute(func, id);
+        }
     }
 }

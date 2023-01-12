@@ -8,7 +8,9 @@ namespace BookingApi.Domain;
 
 public interface IBookingManager
 {
-    Task<Either<Error, Booking>> Create(Booking booking);
+    Task<Either<Error, Booking>> CreateAsync(Booking booking);
+
+    Task<Either<Error, Booking>> GetAsync(Guid id);
 }
 
 public class BookingManager : IBookingManager
@@ -20,7 +22,7 @@ public class BookingManager : IBookingManager
         _bookingRepository = bookingRepository;
     }
 
-    public async Task<Either<Error, Booking>> Create(Booking booking)
+    public async Task<Either<Error, Booking>> CreateAsync(Booking booking)
     {
         var availableResponse = await IsAvailableAsync(booking);
 
@@ -40,6 +42,11 @@ public class BookingManager : IBookingManager
             },
             error => error
         );
+    }
+
+    public Task<Either<Error, Booking>> GetAsync(Guid id)
+    {
+        return _bookingRepository.Get(id);
     }
 
     private async Task<Either<Error, bool>> IsAvailableAsync(Booking booking)

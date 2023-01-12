@@ -27,7 +27,7 @@ namespace BookingApi.Tests
                 1500
             );
 
-            var result = await bookingManager.Create(booking);
+            var result = await bookingManager.CreateAsync(booking);
 
             Assert.IsTrue(result.IsRight);
 
@@ -39,7 +39,7 @@ namespace BookingApi.Tests
                 1500
             );
 
-            result = await bookingManager.Create(duplicateBooking);
+            result = await bookingManager.CreateAsync(duplicateBooking);
 
             Assert.IsTrue(result.IsLeft);
         }

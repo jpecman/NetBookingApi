@@ -53,5 +53,17 @@ namespace BookingApi.Tests.Fakes
 
             return Right(matches.ToImmutableArray());
         }
+
+        public async Task<Either<Error, Booking>> Get(Guid id)
+        {
+            var booking = _storage.Where(x => x.Value.Id == id).FirstOrDefault();
+
+            if (booking.Value == null)
+            {
+                return Left(new Error(ErrorType.NotFound, "Not found."));
+            }
+
+            return Right(booking.Value);
+        }
     }
 }
