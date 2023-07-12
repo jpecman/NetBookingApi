@@ -1,5 +1,6 @@
 ﻿using BookingApi.Domain.Entities;
 using LanguageExt;
+using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,11 +15,7 @@ namespace BookingApi.Infrastructure.DbEntities
 
         public string Name { get; set; }
 
-        public DateOnly Date { get; set; }
-
-        public TimeOnly From { get; set; }
-
-        public TimeOnly To { get; set; }
+        public NpgsqlRange<DateTime> Duration { get; set; }
 
         public decimal Price { get; set; }
     }
@@ -31,9 +28,9 @@ namespace BookingApi.Infrastructure.DbEntities
             (
                 entity.Id,
                 entity.Name,
-                entity.Date,
-                entity.From,
-                entity.To,
+                DateOnly.FromDateTime(entity.Duration.LowerBound.Date),
+                TimeOnly.FromDateTime(entity.Duration.LowerBound.Date),
+                TimeOnly.FromDateTime(entity.Duration.UpperBound.Date),
                 entity.Price
             );
         }
@@ -44,11 +41,14 @@ namespace BookingApi.Infrastructure.DbEntities
             {
                 Id = domain.Id,
                 Name = domain.Name,
-                Date = domain.Date,
-                From = domain.From,
-                To = domain.To,
+                Duration = new NpgsqlRange<DateTime>(GetDateTime(domain.Date, domain.From), GetDateTime(domain.Date, domain.To)),
                 Price = domain.Price
             };
+        }
+
+        private static DateTime GetDateTime(DateOnly date, TimeOnly time)
+        {
+            return new DateTime(date.Year, date.Month, date.Day) + time.ToTimeSpan();
         }
     }
 }

@@ -16,7 +16,7 @@ builder.Services.AddSwaggerGen();
 string connectionString = builder.Configuration["CONNECTION_STRING"];
 
 builder.Services.AddDbContext<BookingApiDbContext>(
-    options => options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options => options.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<IBookingManager, BookingManager>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
