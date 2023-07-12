@@ -18,6 +18,10 @@ namespace BookingApi.Infrastructure.DbEntities
         public NpgsqlRange<DateTime> Duration { get; set; }
 
         public decimal Price { get; set; }
+
+        public ContactDb Contact { get; set; }
+
+        public FieldDb Field { get; set; }
     }
 
     public static class BookingExtensions

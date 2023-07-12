@@ -29,8 +29,14 @@ namespace BookingApi.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("ContactId")
+                        .HasColumnType("uuid");
+
                     b.Property<NpgsqlRange<DateTime>>("Duration")
                         .HasColumnType("tstzrange");
+
+                    b.Property<Guid>("FieldId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -40,6 +46,10 @@ namespace BookingApi.Infrastructure.Migrations
                         .HasColumnType("numeric");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ContactId");
+
+                    b.HasIndex("FieldId");
 
                     b.ToTable("Bookings");
                 });
@@ -69,6 +79,40 @@ namespace BookingApi.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Contacts");
+                });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.FieldDb", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FieldDb");
+                });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.BookingDb", b =>
+                {
+                    b.HasOne("BookingApi.Infrastructure.DbEntities.ContactDb", "Contact")
+                        .WithMany()
+                        .HasForeignKey("ContactId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BookingApi.Infrastructure.DbEntities.FieldDb", "Field")
+                        .WithMany()
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Contact");
+
+                    b.Navigation("Field");
                 });
 #pragma warning restore 612, 618
         }
