@@ -2,17 +2,16 @@ version: "3.9"
 
 services:
   db:
-    image: mariadb
-    command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
-    volumes: 
-      - db-data-volume:/var/lib/mysql
+    image: postgres:14.1-alpine
     restart: always
+    environment:
+      - POSTGRES_USER=bookaneer
+      - POSTGRES_PASSWORD=***REMOVED***
+      - POSTGRES_DB=bookings
     ports:
-     - 3336:3306
-    environment: 
-      MYSQL_ROOT_PASSWORD: dutohlav15
-      MYSQL_DATABASE: bookings
-      MYSQL_USER: book
-      MYSQL_PASSWORD: ***REMOVED***
-volumes: 
-  db-data-volume:
+      - '5432:5432'
+    volumes: 
+      - db:/var/lib/postgresql/data
+volumes:
+  db:
+    driver: local
