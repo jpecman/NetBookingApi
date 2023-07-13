@@ -7,7 +7,7 @@ services:
     environment:
       - POSTGRES_USER=bookaneer
       - POSTGRES_PASSWORD=***REMOVED***
-      - POSTGRES_DB=bookings
+      - POSTGRES_DB=BookingDb
     ports:
       - '5432:5432'
     volumes: 

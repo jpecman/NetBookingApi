@@ -93,7 +93,7 @@ namespace BookingApi.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FieldDb");
+                    b.ToTable("Fields");
                 });
 
             modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.BookingDb", b =>
