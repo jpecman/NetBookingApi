@@ -14,5 +14,5 @@ namespace BookingApi.Domain.Repositories
         Task<Either<Error, Booking>> Create(Booking booking);
     }
 
-    public record BookingSearch(DateOnly Date, TimeOnly From, TimeOnly To, Guid ExceptId);
+    public record BookingSearch(DateTime From, DateTime To, Guid ExceptId);
 }

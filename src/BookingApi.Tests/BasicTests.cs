@@ -2,6 +2,7 @@ using BookingApi.Domain;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
 using BookingApi.Tests.Fakes;
+using System.Collections.Immutable;
 
 namespace BookingApi.Tests
 {
@@ -14,6 +15,8 @@ namespace BookingApi.Tests
             DateOnly someDaty = DateOnly.FromDateTime(DateTime.Today);
             TimeOnly time = TimeOnly.FromDateTime(DateTime.Now);
 
+            Contact c = new Contact(Guid.Empty, "Jirka", "Sirka", "jpecman@gmail.com", "123 456 789");
+
             IBookingRepository repo = new FakeRepository();
             IBookingManager bookingManager = new BookingManager(repo);
 
@@ -21,10 +24,8 @@ namespace BookingApi.Tests
 
             var booking = CreateNewBooking(
                 "Test 1",
-                DateOnly.FromDateTime(today),
-                new TimeOnly(9, 0),
-                new TimeOnly(10, 30),
-                1500
+                c,
+                null
             );
 
             var result = await bookingManager.CreateAsync(booking);
@@ -33,10 +34,8 @@ namespace BookingApi.Tests
 
             var duplicateBooking = CreateNewBooking(
                 "Test 1",
-                DateOnly.FromDateTime(today),
-                new TimeOnly(10, 0),
-                new TimeOnly(11, 30),
-                1500
+                c,
+                null
             );
 
             result = await bookingManager.CreateAsync(duplicateBooking);
@@ -46,13 +45,11 @@ namespace BookingApi.Tests
 
         private Booking CreateNewBooking(
             string name,
-            DateOnly day,
-            TimeOnly from,
-            TimeOnly to,
-            decimal price
+            Contact contact,
+            ImmutableList<Slot> slots
         )
         {
-            return new Booking(Guid.Empty, name, day, from, to, price);
+            return new Booking(Guid.Empty, name, contact, slots);
         }
     }
 }

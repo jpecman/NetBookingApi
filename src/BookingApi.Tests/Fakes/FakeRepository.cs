@@ -16,12 +16,12 @@ namespace BookingApi.Tests.Fakes
 {
     internal class FakeRepository : IBookingRepository
     {
-        private readonly Dictionary<(DateOnly Date, TimeOnly From, TimeOnly To), Booking> _storage =
-            new Dictionary<(DateOnly, TimeOnly, TimeOnly), Booking>();
+        private readonly Dictionary<(DateTime From, DateTime To), Booking> _storage =
+            new Dictionary<(DateTime, DateTime), Booking>();
 
         public async Task<Either<Error, Booking>> Create(Booking booking)
         {
-            (DateOnly, TimeOnly, TimeOnly) key = (booking.Date, booking.From, booking.To);
+            (DateTime, DateTime) key = (booking.From, booking.To);
 
             if (_storage.ContainsKey(key))
             {
@@ -42,9 +42,9 @@ namespace BookingApi.Tests.Fakes
             foreach (var item in _storage)
             {
                 if (
-                    item.Key.Date == search.Date
-                    // && item.Key.From > search.From
-                    // && item.Key.To < search.To
+                    // item.Key.Date == search.Date
+                    item.Key.From > search.From
+                    && item.Key.To < search.To
                 )
                 {
                     matches.Add(item.Value);

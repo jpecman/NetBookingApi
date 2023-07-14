@@ -47,13 +47,8 @@ namespace BookingApi.Infrastructure.Repositories
         {
             try
             {
-                var bookings = await _dbContext.Bookings.Where(
-                    x =>
-                        DateOnly.FromDateTime(x.Duration.LowerBound.Date) == search.Date &&
-                        TimeOnly.FromDateTime(x.Duration.LowerBound.Date) >= search.From &&
-                        TimeOnly.FromDateTime(x.Duration.UpperBound.Date) <= search.To
-                    )
-                .ToListAsync();
+                var bookings = await _dbContext.Slots.
+                    Where(s => s.Duration.LowerBound >= search.From && s.Duration.UpperBound <= search.To).Select(s => s.Booking).ToListAsync();
 
                 return Right(ImmutableArray.Create(bookings.Select(x => x.ToDomain()).ToArray()));
             }

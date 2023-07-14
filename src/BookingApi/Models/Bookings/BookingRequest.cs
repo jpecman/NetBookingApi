@@ -19,10 +19,8 @@ public static class BookingRequestExtensions
         (
             Guid.Empty,
             request.Name,
-            DateOnly.FromDateTime(request.From.Date),
-            TimeOnly.FromDateTime(request.From),
-            TimeOnly.FromDateTime(request.To),
-            request.Price
+            null,
+            null
         );
     }
 }

@@ -52,7 +52,7 @@ public class BookingManager : IBookingManager
     private async Task<Either<Error, bool>> IsAvailableAsync(Booking booking)
     {
         var repoResponse = await _bookingRepository.Get(
-            new BookingSearch(booking.Date, booking.From, booking.To, booking.Id)
+            new BookingSearch(booking.From, booking.To, booking.Id)
         );
 
         return repoResponse.Match<Either<Error, bool>>(

@@ -3,6 +3,8 @@ using LanguageExt;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,13 +17,12 @@ namespace BookingApi.Infrastructure.DbEntities
 
         public string Name { get; set; }
 
-        public NpgsqlRange<DateTime> Duration { get; set; }
-
-        public decimal Price { get; set; }
-
         public ContactDb Contact { get; set; }
 
-        public FieldDb Field { get; set; }
+        public List<SlotDb> Slots { get; set; }
+
+        [Timestamp]
+        public uint Version { get; set; }
     }
 
     public static class BookingExtensions
@@ -32,10 +33,8 @@ namespace BookingApi.Infrastructure.DbEntities
             (
                 entity.Id,
                 entity.Name,
-                DateOnly.FromDateTime(entity.Duration.LowerBound.Date),
-                TimeOnly.FromDateTime(entity.Duration.LowerBound.Date),
-                TimeOnly.FromDateTime(entity.Duration.UpperBound.Date),
-                entity.Price
+                entity.Contact.ToDomain(),
+                entity.Slots.Select(x => x.ToDomain()).ToImmutableList()
             );
         }
 
@@ -45,14 +44,9 @@ namespace BookingApi.Infrastructure.DbEntities
             {
                 Id = domain.Id,
                 Name = domain.Name,
-                Duration = new NpgsqlRange<DateTime>(GetDateTime(domain.Date, domain.From), GetDateTime(domain.Date, domain.To)),
-                Price = domain.Price
+                Contact = domain.Contact.ToEntity(),
+                Slots = domain.Slots.Select(x => x.ToEntity()).ToList()
             };
-        }
-
-        private static DateTime GetDateTime(DateOnly date, TimeOnly time)
-        {
-            return new DateTime(date.Year, date.Month, date.Day) + time.ToTimeSpan();
         }
     }
 }

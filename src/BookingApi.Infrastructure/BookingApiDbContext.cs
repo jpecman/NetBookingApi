@@ -15,4 +15,6 @@ public class BookingApiDbContext : DbContext
     public DbSet<ContactDb> Contacts { get; set; }
 
     public DbSet<FieldDb> Fields { get; set; }
+
+    public DbSet<SlotDb> Slots { get; set; }
 }
