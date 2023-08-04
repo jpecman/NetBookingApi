@@ -22,10 +22,12 @@ namespace BookingApi.Tests
 
             var today = DateTime.Today;
 
+            var slots = ImmutableList.Create(new Slot(Guid.Empty, "Test 1", today.AddHours(10), today.AddHours(11.5), 1000, new Field(Guid.Empty, "Umelka")));
+
             var booking = CreateNewBooking(
                 "Test 1",
                 c,
-                null
+                slots
             );
 
             var result = await bookingManager.CreateAsync(booking);
@@ -35,7 +37,7 @@ namespace BookingApi.Tests
             var duplicateBooking = CreateNewBooking(
                 "Test 1",
                 c,
-                null
+                slots
             );
 
             result = await bookingManager.CreateAsync(duplicateBooking);
