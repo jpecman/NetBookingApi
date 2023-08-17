@@ -12,9 +12,6 @@ namespace BookingApi.Tests
         [TestMethod]
         public async Task BasicTestAsync()
         {
-            DateOnly someDaty = DateOnly.FromDateTime(DateTime.Today);
-            TimeOnly time = TimeOnly.FromDateTime(DateTime.Now);
-
             Contact c = new Contact(Guid.Empty, "Jirka", "Sirka", "jpecman@gmail.com", "123 456 789");
 
             IBookingRepository repo = new FakeRepository();
