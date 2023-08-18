@@ -10,6 +10,8 @@ public interface IBookingManager
 {
     Task<Either<Error, Booking>> CreateAsync(Booking booking);
 
+    Task<Either<Error, Booking>> CreateRecurringAsync(Booking booking);
+
     Task<Either<Error, Booking>> GetAsync(Guid id);
 }
 
@@ -44,6 +46,16 @@ public class BookingManager : IBookingManager
         );
     }
 
+    public async Task<Either<Error, Booking>> CreateRecurringAsync(Booking booking)
+    {
+        var availableResponse = await IsAvailableAsync(booking);
+
+        return await availableResponse.MatchAsync<Either<Error, Booking>>(
+            async isAvailable => new Booking(Guid.Empty, string.Empty, null, null),
+            error => error
+            );
+    }
+
     public Task<Either<Error, Booking>> GetAsync(Guid id)
     {
         return _bookingRepository.Get(id);
@@ -51,9 +63,7 @@ public class BookingManager : IBookingManager
 
     private async Task<Either<Error, bool>> IsAvailableAsync(Booking booking)
     {
-        var repoResponse = await _bookingRepository.Get(
-            new BookingSearch(booking.From, booking.To, booking.Id)
-        );
+        var repoResponse = await _bookingRepository.Get(new BookingSearch(booking.From, booking.To, booking.Id));
 
         return repoResponse.Match<Either<Error, bool>>(
             bookings =>

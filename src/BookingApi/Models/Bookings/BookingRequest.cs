@@ -1,5 +1,7 @@
 
 using BookingApi.Domain.Entities;
+using BookingApi.Models.Contacts;
+using BookingApi.Models.Fields;
 
 namespace BookingApi.Models.Bookings;
 
@@ -8,7 +10,9 @@ public record BookingRequest(
     DateTime From,
     DateTime To,
     decimal Price,
-    bool IsWholeField
+    bool IsWholeField,
+    ContactIdRequest Contact,
+    FieldIdRequest Field
 );
 
 public static class BookingRequestExtensions
@@ -19,7 +23,7 @@ public static class BookingRequestExtensions
         (
             Guid.Empty,
             request.Name,
-            null,
+            request.Contact.ToDomain(),
             null
         );
     }

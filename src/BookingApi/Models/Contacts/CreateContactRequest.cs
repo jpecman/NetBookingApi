@@ -1,13 +1,13 @@
-﻿using BookingApi.Domain.Entities;
+using BookingApi.Domain.Entities;
 using BookingApi.Models.Bookings;
 
 namespace BookingApi.Models.Contacts
 {
-    public record ContactRequest(string FirstName, string LastName, string Email, string Phone);
+    public record CreateContactRequest(string FirstName, string LastName, string Email, string Phone);
 
-    public static class ContactRequestExtensions
+    public static class CreateContactRequestExtensions
     {
-        public static Contact ToDomain(this ContactRequest request)
+        public static Contact ToDomain(this CreateContactRequest request)
         {
             return new Contact
             (

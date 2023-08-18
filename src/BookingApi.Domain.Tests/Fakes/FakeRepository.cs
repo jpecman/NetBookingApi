@@ -1,18 +1,14 @@
-﻿using BookingApi.Common.Messaging;
-using BookingApi.Domain;
+using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
+
 using LanguageExt;
-using System;
-using System.Collections.Generic;
+
 using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 using static LanguageExt.Prelude;
 
-namespace BookingApi.Tests.Fakes
+namespace BookingApi.Domain.Tests.Fakes
 {
     internal class FakeRepository : IBookingRepository
     {

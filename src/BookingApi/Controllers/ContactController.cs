@@ -1,4 +1,4 @@
-﻿using BookingApi.Common.Messaging;
+using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
 using BookingApi.Models.Contacts;
@@ -18,7 +18,7 @@ namespace BookingApi.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ContactResponse>> PostAsync([FromBody] ContactRequest contact)
+        public async Task<ActionResult<ContactResponse>> PostAsync([FromBody] CreateContactRequest contact)
         {
             var response = await _repo.Create(contact.ToDomain());
 

@@ -17,12 +17,20 @@ public class BookingController : BaseApiController
         _bookingManager = bookingManager;
     }
 
-    [HttpPost]
+    [HttpPost("simple")]
     public async Task<ActionResult<BookingResponse>> PostAsync([FromBody] BookingRequest booking)
     {
         var createResponse = await _bookingManager.CreateAsync(booking.ToDomain());
 
         return HandleResponse(createResponse, x => x.ToResponse());
+    }
+
+    [HttpPost("recurring")]
+    public async Task<ActionResult<BookingResponse>> CreateRecurringBooking([FromBody] RecurringBookingRequest request)
+    {
+        var createResponse = await _bookingManager.CreateRecurringAsync(null);
+
+        return Ok();
     }
 
     [HttpGet("{id}")]

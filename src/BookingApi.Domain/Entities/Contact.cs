@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,5 +13,8 @@ namespace BookingApi.Domain.Entities
         string LastName,
         string Email,
         string Phone
-    );
+    )
+    {
+        public static Contact EmptyWithId(Guid id) => new(id, string.Empty, string.Empty, string.Empty, string.Empty);
+    }
 }
