@@ -1,8 +1,9 @@
-﻿using BookingApi.Domain.Entities;
+using BookingApi.Domain.Entities;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,8 +20,16 @@ namespace BookingApi.Infrastructure.DbEntities
 
         public decimal Price { get; set; }
 
+        [Required]
+        public Guid FieldId { get; set; }
+
+        [ForeignKey(nameof(FieldId))]
         public FieldDb Field { get; set; }
 
+        [Required]
+        public Guid BookingId { get; set; }
+
+        [ForeignKey(nameof(BookingId))]
         public BookingDb Booking { get; set; }
 
         [Timestamp]
@@ -48,8 +57,9 @@ namespace BookingApi.Infrastructure.DbEntities
             {
                 Id = domain.Id,
                 Name = domain.Name,
-                Duration = new NpgsqlRange<DateTime>(domain.From, domain.To),
-                Price = domain.Price
+                Duration = new NpgsqlRange<DateTime>(domain.From.ToUniversalTime(), domain.To.ToUniversalTime()),
+                Price = domain.Price,
+                FieldId = domain.Field.Id
             };
         }
 

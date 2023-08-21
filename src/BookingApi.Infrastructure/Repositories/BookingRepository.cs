@@ -1,11 +1,14 @@
-﻿using BookingApi.Common.Messaging;
+using BookingApi.Common.Messaging;
 using BookingApi.Domain;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
 using BookingApi.Infrastructure.DbEntities;
+
 using LanguageExt;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -28,16 +31,16 @@ namespace BookingApi.Infrastructure.Repositories
             _logger = logger;
         }
 
-        public async Task<Either<Error, Booking>> Create(Booking booking)
+        public async Task<Either<Error, Guid>> Create(Booking booking)
         {
-            Func<Booking, Task<Booking>> func = async b =>
+            Func<Booking, Task<Guid>> func = async b =>
             {
                 var dbEntity = b.ToEntity();
 
                 var entry = _dbContext.Bookings.Add(dbEntity);
                 await _dbContext.SaveChangesAsync();
 
-                return entry.Entity.ToDomain();
+                return entry.Entity.Id;
             };
 
             return await Execute(func, booking);
@@ -48,7 +51,7 @@ namespace BookingApi.Infrastructure.Repositories
             try
             {
                 var bookings = await _dbContext.Slots.
-                    Where(s => s.Duration.LowerBound >= search.From && s.Duration.UpperBound <= search.To).Select(s => s.Booking).ToListAsync();
+                    Where(s => s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime() && s.Duration.UpperBound.ToUniversalTime() <= search.To.ToUniversalTime()).Select(s => s.Booking).ToListAsync();
 
                 return Right(ImmutableArray.Create(bookings.Select(x => x.ToDomain()).ToArray()));
             }
@@ -62,7 +65,7 @@ namespace BookingApi.Infrastructure.Repositories
         {
             Func<Guid, Task<Booking>> func = async bId =>
             {
-                var entity = await _dbContext.Bookings.FirstAsync(x => x.Id == bId);
+                var entity = await _dbContext.Bookings.Include(b => b.Contact).Include(b => b.Slots).ThenInclude(s => s.Field).FirstAsync(x => x.Id == bId);
 
                 return entity.ToDomain();
             };

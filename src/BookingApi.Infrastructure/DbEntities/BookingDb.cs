@@ -1,10 +1,11 @@
-﻿using BookingApi.Domain.Entities;
+using BookingApi.Domain.Entities;
 using LanguageExt;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,6 +18,10 @@ namespace BookingApi.Infrastructure.DbEntities
 
         public string Name { get; set; }
 
+        [Required]
+        public Guid ContactId { get; set; }
+
+        [ForeignKey(nameof(ContactId))]
         public ContactDb Contact { get; set; }
 
         public List<SlotDb> Slots { get; set; }
@@ -44,7 +49,7 @@ namespace BookingApi.Infrastructure.DbEntities
             {
                 Id = domain.Id,
                 Name = domain.Name,
-                Contact = domain.Contact.ToEntity(),
+                ContactId = domain.Contact.Id,
                 Slots = domain.Slots.Select(x => x.ToEntity()).ToList()
             };
         }

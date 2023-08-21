@@ -1,4 +1,6 @@
 
+using System.Collections.Immutable;
+
 using BookingApi.Domain.Entities;
 using BookingApi.Models.Contacts;
 using BookingApi.Models.Fields;
@@ -19,12 +21,17 @@ public static class BookingRequestExtensions
 {
     public static Booking ToDomain(this BookingRequest request)
     {
-        return new Booking
+        var listBuilder = ImmutableList.CreateBuilder<Slot>();
+        listBuilder.Add(new Slot(Guid.Empty, request.Name, request.From, request.To, request.Price, request.Field.ToDomain()));
+
+        var booking = new Booking
         (
             Guid.Empty,
             request.Name,
             request.Contact.ToDomain(),
-            null
+            listBuilder.ToImmutable()
         );
+
+        return booking;
     }
 }

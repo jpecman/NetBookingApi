@@ -15,7 +15,7 @@ namespace BookingApi.Domain.Tests.Fakes
         private readonly Dictionary<(DateTime From, DateTime To), Booking> _storage =
             new Dictionary<(DateTime, DateTime), Booking>();
 
-        public async Task<Either<Error, Booking>> Create(Booking booking)
+        public async Task<Either<Error, Guid>> Create(Booking booking)
         {
             (DateTime, DateTime) key = (booking.From, booking.To);
 
@@ -28,7 +28,7 @@ namespace BookingApi.Domain.Tests.Fakes
 
             _storage.Add(key, bookingWithId);
 
-            return Right(bookingWithId);
+            return Right(bookingWithId.Id);
         }
 
         public async Task<Either<Error, ImmutableArray<Booking>>> Get(BookingSearch search)

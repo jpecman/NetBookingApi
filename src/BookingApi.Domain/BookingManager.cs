@@ -8,7 +8,7 @@ namespace BookingApi.Domain;
 
 public interface IBookingManager
 {
-    Task<Either<Error, Booking>> CreateAsync(Booking booking);
+    Task<Either<Error, Guid>> CreateAsync(Booking booking);
 
     Task<Either<Error, Booking>> CreateRecurringAsync(Booking booking);
 
@@ -24,18 +24,18 @@ public class BookingManager : IBookingManager
         _bookingRepository = bookingRepository;
     }
 
-    public async Task<Either<Error, Booking>> CreateAsync(Booking booking)
+    public async Task<Either<Error, Guid>> CreateAsync(Booking booking)
     {
         var availableResponse = await IsAvailableAsync(booking);
 
-        return await availableResponse.MatchAsync<Either<Error, Booking>>(
+        return await availableResponse.MatchAsync<Either<Error, Guid>>(
             async isAvailable =>
             {
                 if (isAvailable)
                 {
                     var newBooking = await _bookingRepository.Create(booking);
 
-                    return newBooking.Match<Either<Error, Booking>>(b => b, err => err);
+                    return newBooking.Match<Either<Error, Guid>>(b => b, err => err);
                 }
                 else
                 {

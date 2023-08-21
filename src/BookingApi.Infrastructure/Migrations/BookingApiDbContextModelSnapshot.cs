@@ -32,18 +32,9 @@ namespace BookingApi.Infrastructure.Migrations
                     b.Property<Guid>("ContactId")
                         .HasColumnType("uuid");
 
-                    b.Property<NpgsqlRange<DateTime>>("Duration")
-                        .HasColumnType("tstzrange");
-
-                    b.Property<Guid>("FieldId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("numeric");
 
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
@@ -54,8 +45,6 @@ namespace BookingApi.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ContactId");
-
-                    b.HasIndex("FieldId");
 
                     b.ToTable("Bookings");
                 });
@@ -114,11 +103,59 @@ namespace BookingApi.Infrastructure.Migrations
                     b.ToTable("Fields");
                 });
 
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.SlotDb", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<NpgsqlRange<DateTime>>("Duration")
+                        .HasColumnType("tstzrange");
+
+                    b.Property<Guid>("FieldId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("FieldId");
+
+                    b.ToTable("Slots");
+                });
+
             modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.BookingDb", b =>
                 {
                     b.HasOne("BookingApi.Infrastructure.DbEntities.ContactDb", "Contact")
                         .WithMany()
                         .HasForeignKey("ContactId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Contact");
+                });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.SlotDb", b =>
+                {
+                    b.HasOne("BookingApi.Infrastructure.DbEntities.BookingDb", "Booking")
+                        .WithMany("Slots")
+                        .HasForeignKey("BookingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -128,9 +165,14 @@ namespace BookingApi.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Contact");
+                    b.Navigation("Booking");
 
                     b.Navigation("Field");
+                });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.BookingDb", b =>
+                {
+                    b.Navigation("Slots");
                 });
 #pragma warning restore 612, 618
         }

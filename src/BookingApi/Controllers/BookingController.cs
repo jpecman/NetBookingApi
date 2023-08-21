@@ -22,7 +22,7 @@ public class BookingController : BaseApiController
     {
         var createResponse = await _bookingManager.CreateAsync(booking.ToDomain());
 
-        return HandleResponse(createResponse, x => x.ToResponse());
+        return HandleResponse(createResponse, x => x);
     }
 
     [HttpPost("recurring")]
