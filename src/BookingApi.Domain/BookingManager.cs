@@ -1,7 +1,9 @@
 using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
+
 using LanguageExt;
+
 using static LanguageExt.Prelude;
 
 namespace BookingApi.Domain;
@@ -13,6 +15,8 @@ public interface IBookingManager
     Task<Either<Error, Booking>> CreateRecurringAsync(Booking booking);
 
     Task<Either<Error, Booking>> GetAsync(Guid id);
+
+    Task<Either<Error, Booking[]>> GetAsync();
 }
 
 public class BookingManager : IBookingManager
@@ -33,7 +37,7 @@ public class BookingManager : IBookingManager
             {
                 if (isAvailable)
                 {
-                    var newBooking = await _bookingRepository.Create(booking);
+                    var newBooking = await _bookingRepository.CreateAsync(booking);
 
                     return newBooking.Match<Either<Error, Guid>>(b => b, err => err);
                 }
@@ -58,12 +62,25 @@ public class BookingManager : IBookingManager
 
     public Task<Either<Error, Booking>> GetAsync(Guid id)
     {
-        return _bookingRepository.Get(id);
+        return _bookingRepository.GetAsync(id);
+    }
+
+    public async Task<Either<Error, Booking[]>> GetAsync()
+    {
+        var response = await _bookingRepository.GetAsync(new BookingSearch(DateTime.Parse("2023-01-01"), DateTime.Parse("2023-01-12"), Guid.Empty));
+
+        return await response.MatchAsync<Either<Error, Booking[]>>(
+                        async bookings =>
+                        {
+                            return bookings.ToArray();
+                        },
+                        error => error
+                        );
     }
 
     private async Task<Either<Error, bool>> IsAvailableAsync(Booking booking)
     {
-        var repoResponse = await _bookingRepository.Get(new BookingSearch(booking.From, booking.To, booking.Id));
+        var repoResponse = await _bookingRepository.GetAsync(new BookingSearch(booking.From, booking.To, booking.Id));
 
         return repoResponse.Match<Either<Error, bool>>(
             bookings =>

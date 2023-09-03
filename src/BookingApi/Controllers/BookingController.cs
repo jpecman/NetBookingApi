@@ -28,9 +28,9 @@ public class BookingController : BaseApiController
     [HttpPost("recurring")]
     public async Task<ActionResult<BookingResponse>> CreateRecurringBooking([FromBody] RecurringBookingRequest request)
     {
-        var createResponse = await _bookingManager.CreateRecurringAsync(null);
+        var createResponse = await _bookingManager.CreateRecurringAsync(request.ToDomain());
 
-        return Ok();
+        return HandleResponse(createResponse, booking => booking);
     }
 
     [HttpGet("{id}")]
@@ -39,5 +39,13 @@ public class BookingController : BaseApiController
         var getResponse = await _bookingManager.GetAsync(id);
 
         return HandleResponse(getResponse, x => x.ToResponse());
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<BookingResponse[]>> GetAsync()
+    {
+        var getResponse = await _bookingManager.GetAsync();
+
+        return HandleResponse(getResponse, bookings => bookings.Select(b => b.ToResponse()).ToArray());
     }
 }

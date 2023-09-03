@@ -31,7 +31,7 @@ namespace BookingApi.Infrastructure.Repositories
             _logger = logger;
         }
 
-        public async Task<Either<Error, Guid>> Create(Booking booking)
+        public async Task<Either<Error, Guid>> CreateAsync(Booking booking)
         {
             Func<Booking, Task<Guid>> func = async b =>
             {
@@ -46,12 +46,15 @@ namespace BookingApi.Infrastructure.Repositories
             return await Execute(func, booking);
         }
 
-        public async Task<Either<Error, ImmutableArray<Booking>>> Get(BookingSearch search)
+        public async Task<Either<Error, ImmutableArray<Booking>>> GetAsync(BookingSearch search)
         {
             try
             {
-                var bookings = await _dbContext.Slots.
-                    Where(s => s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime() && s.Duration.UpperBound.ToUniversalTime() <= search.To.ToUniversalTime()).Select(s => s.Booking).ToListAsync();
+                var slots = await _dbContext.Slots.Include(s => s.Booking).ThenInclude(b => b.Contact).Include(s => s.Field).
+                    Where(s => s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime()
+                            && s.Duration.UpperBound.ToUniversalTime() <= search.To.ToUniversalTime()).ToListAsync();
+
+                var bookings = slots.Select(slot => slot.Booking);
 
                 return Right(ImmutableArray.Create(bookings.Select(x => x.ToDomain()).ToArray()));
             }
@@ -61,7 +64,7 @@ namespace BookingApi.Infrastructure.Repositories
             }
         }
 
-        public async Task<Either<Error, Booking>> Get(Guid id)
+        public async Task<Either<Error, Booking>> GetAsync(Guid id)
         {
             Func<Guid, Task<Booking>> func = async bId =>
             {

@@ -7,11 +7,11 @@ namespace BookingApi.Domain.Repositories
 {
     public interface IBookingRepository
     {
-        Task<Either<Error, Booking>> Get(Guid id);
+        Task<Either<Error, Booking>> GetAsync(Guid id);
 
-        Task<Either<Error, ImmutableArray<Booking>>> Get(BookingSearch search);
+        Task<Either<Error, ImmutableArray<Booking>>> GetAsync(BookingSearch search);
 
-        Task<Either<Error, Guid>> Create(Booking booking);
+        Task<Either<Error, Guid>> CreateAsync(Booking booking);
     }
 
     public record BookingSearch(DateTime From, DateTime To, Guid ExceptId);

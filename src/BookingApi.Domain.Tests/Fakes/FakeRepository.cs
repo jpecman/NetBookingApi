@@ -15,7 +15,7 @@ namespace BookingApi.Domain.Tests.Fakes
         private readonly Dictionary<(DateTime From, DateTime To), Booking> _storage =
             new Dictionary<(DateTime, DateTime), Booking>();
 
-        public async Task<Either<Error, Guid>> Create(Booking booking)
+        public async Task<Either<Error, Guid>> CreateAsync(Booking booking)
         {
             (DateTime, DateTime) key = (booking.From, booking.To);
 
@@ -31,7 +31,7 @@ namespace BookingApi.Domain.Tests.Fakes
             return Right(bookingWithId.Id);
         }
 
-        public async Task<Either<Error, ImmutableArray<Booking>>> Get(BookingSearch search)
+        public async Task<Either<Error, ImmutableArray<Booking>>> GetAsync(BookingSearch search)
         {
             List<Booking> matches = new List<Booking>();
 
@@ -50,7 +50,7 @@ namespace BookingApi.Domain.Tests.Fakes
             return Right(matches.ToImmutableArray());
         }
 
-        public async Task<Either<Error, Booking>> Get(Guid id)
+        public async Task<Either<Error, Booking>> GetAsync(Guid id)
         {
             var booking = _storage.Where(x => x.Value.Id == id).FirstOrDefault();
 
