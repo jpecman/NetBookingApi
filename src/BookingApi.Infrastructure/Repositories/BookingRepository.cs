@@ -2,6 +2,7 @@ using BookingApi.Common.Messaging;
 using BookingApi.Domain;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
+using BookingApi.Domain.Search;
 using BookingApi.Infrastructure.DbEntities;
 
 using LanguageExt;

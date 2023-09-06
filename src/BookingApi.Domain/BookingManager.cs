@@ -1,6 +1,7 @@
 using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
+using BookingApi.Domain.Search;
 
 using LanguageExt;
 
@@ -16,7 +17,7 @@ public interface IBookingManager
 
     Task<Either<Error, Booking>> GetAsync(Guid id);
 
-    Task<Either<Error, Booking[]>> GetAsync();
+    Task<Either<Error, Booking[]>> GetAsync(BookingSearch search);
 }
 
 public class BookingManager : IBookingManager
@@ -65,9 +66,9 @@ public class BookingManager : IBookingManager
         return _bookingRepository.GetAsync(id);
     }
 
-    public async Task<Either<Error, Booking[]>> GetAsync()
+    public async Task<Either<Error, Booking[]>> GetAsync(BookingSearch search)
     {
-        var response = await _bookingRepository.GetAsync(new BookingSearch(DateTime.Parse("2023-01-01"), DateTime.Parse("2023-01-12"), Guid.Empty));
+        var response = await _bookingRepository.GetAsync(search);
 
         return await response.MatchAsync<Either<Error, Booking[]>>(
                         async bookings =>

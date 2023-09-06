@@ -42,9 +42,9 @@ public class BookingController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<BookingResponse[]>> GetAsync()
+    public async Task<ActionResult<BookingResponse[]>> GetAsync([FromQuery] SearchBookingRequest search)
     {
-        var getResponse = await _bookingManager.GetAsync();
+        var getResponse = await _bookingManager.GetAsync(search.ToDomain());
 
         return HandleResponse(getResponse, bookings => bookings.Select(b => b.ToResponse()).ToArray());
     }

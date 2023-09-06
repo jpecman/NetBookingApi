@@ -1,5 +1,7 @@
 using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
+using BookingApi.Domain.Search;
+
 using LanguageExt;
 using System.Collections.Immutable;
 
@@ -13,6 +15,4 @@ namespace BookingApi.Domain.Repositories
 
         Task<Either<Error, Guid>> CreateAsync(Booking booking);
     }
-
-    public record BookingSearch(DateTime From, DateTime To, Guid ExceptId);
 }

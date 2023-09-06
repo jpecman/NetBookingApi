@@ -1,11 +1,8 @@
-﻿using BookingApi.Common.Messaging;
-using BookingApi.Domain.Entities;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+using BookingApi.Common.Messaging;
+using BookingApi.Domain.Entities;
+using BookingApi.Domain.Search;
 
 namespace BookingApi.Domain.Repositories
 {
@@ -17,6 +14,4 @@ namespace BookingApi.Domain.Repositories
         Task<Response<Contact>> Update(Contact entity);
         Task<Response> Delete(Guid id);
     }
-
-    public record ContactSearch(string FirstName, string LastName, string Email, string Phone);
 }
