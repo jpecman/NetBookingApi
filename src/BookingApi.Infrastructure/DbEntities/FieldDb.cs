@@ -22,11 +22,12 @@ namespace BookingApi.Infrastructure.DbEntities
     {
         public static Field ToDomain(this FieldDb entity)
         {
-            return new Field
-                (
-                    entity.Id,
-                    entity.Name
-                );
+            return new Field(entity.Id, entity.Name);
+        }
+
+        public static FieldDb ToEntity(this Field entity)
+        {
+            return new FieldDb { Id = entity.Id, Name = entity.Name };
         }
     }
 }

@@ -9,18 +9,19 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 string connectionString = builder.Configuration["CONNECTION_STRING"];
 
-builder.Services.AddDbContext<BookingApiDbContext>(
-    options => options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<BookingApiDbContext>(options => options.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<IBookingManager, BookingManager>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IContactRepository, ContactRepository>();
+builder.Services.AddScoped<IFieldRepository, FieldRepository>();
 
 var app = builder.Build();
 
