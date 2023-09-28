@@ -1,15 +1,12 @@
 
 using BookingApi.Domain;
-using BookingApi.Models;
+using BookingApi.Models.Bookings;
 using LanguageExt;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
-[ApiController]
-// [ApiVersion("1.0")]
-[Route("api/v1/[controller]")]
-public class BookingController : ControllerBase
+public class BookingController : BaseApiController
 {
     private readonly ILogger<BookingController> _logger;
     private readonly IBookingManager _bookingManager;
@@ -20,26 +17,35 @@ public class BookingController : ControllerBase
         _bookingManager = bookingManager;
     }
 
-    [HttpPost]
+    [HttpPost("simple")]
     public async Task<ActionResult<BookingResponse>> PostAsync([FromBody] BookingRequest booking)
     {
-        return HandleResponse(await _bookingManager.Create(booking.ToDomain()));
+        var createResponse = await _bookingManager.CreateAsync(booking.ToDomain());
+
+        return HandleResponse(createResponse, x => x);
     }
 
-    protected ActionResult HandleError(Error error)
+    [HttpPost("recurring")]
+    public async Task<ActionResult<BookingResponse>> CreateRecurringBooking([FromBody] RecurringBookingRequest request)
     {
-        if (error.ErrorType == ErrorType.NotFound)
-        {
-            return NotFound();
-        }
+        var createResponse = await _bookingManager.CreateRecurringAsync(request.ToDomain());
 
-        return BadRequest();
+        return HandleResponse(createResponse, booking => booking);
     }
 
-    protected ActionResult HandleResponse<T>(Either<Error, T> response)
+    [HttpGet("{id}")]
+    public async Task<ActionResult<BookingResponse>> GetAsync([FromRoute] Guid id)
     {
-        return response.Match<ActionResult>(
-            model => Ok(model),
-            error => HandleError(error));
+        var getResponse = await _bookingManager.GetAsync(id);
+
+        return HandleResponse(getResponse, x => x.ToResponse());
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<BookingResponse[]>> GetAsync([FromQuery] SearchBookingRequest search)
+    {
+        var getResponse = await _bookingManager.GetAsync(search.ToDomain());
+
+        return HandleResponse(getResponse, bookings => bookings.Select(b => b.ToResponse()).ToArray());
     }
 }

@@ -1,0 +1,2 @@
+migrationBuilder.Sql("CREATE EXTENSION btree_gist;");
+migrationBuilder.Sql("ALTER TABLE \"Bookings\" ADD CONSTRAINT EnsureUniqueBooking EXCLUDE USING gist (\"FieldId\" WITH =, \"Duration\" WITH &&);");

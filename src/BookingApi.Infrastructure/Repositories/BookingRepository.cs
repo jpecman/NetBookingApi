@@ -1,10 +1,15 @@
-﻿using BookingApi.Domain;
+using BookingApi.Common.Messaging;
+using BookingApi.Domain;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
+using BookingApi.Domain.Search;
 using BookingApi.Infrastructure.DbEntities;
+
 using LanguageExt;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -27,26 +32,30 @@ namespace BookingApi.Infrastructure.Repositories
             _logger = logger;
         }
 
-        public async Task<Either<Error, Booking>> Create(Booking booking)
+        public async Task<Either<Error, Guid>> CreateAsync(Booking booking)
         {
-            Func<Booking, Task<Booking>> func = async b =>
+            Func<Booking, Task<Guid>> func = async b =>
             {
                 var dbEntity = b.ToEntity();
 
                 var entry = _dbContext.Bookings.Add(dbEntity);
                 await _dbContext.SaveChangesAsync();
 
-                return entry.Entity.ToDomain();
+                return entry.Entity.Id;
             };
 
             return await Execute(func, booking);
         }
 
-        public async Task<Either<Error, ImmutableArray<Booking>>> Get(BookingSearch search)
+        public async Task<Either<Error, ImmutableArray<Booking>>> GetAsync(BookingSearch search)
         {
             try
             {
-                var bookings = await _dbContext.Bookings.Where(x => x.From <= search.From && x.To >= search.To).ToListAsync();
+                var slots = await _dbContext.Slots.Include(s => s.Booking).ThenInclude(b => b.Contact).Include(s => s.Field).
+                    Where(s => s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime()
+                            && s.Duration.UpperBound.ToUniversalTime() <= search.To.ToUniversalTime()).ToListAsync();
+
+                var bookings = slots.Select(slot => slot.Booking);
 
                 return Right(ImmutableArray.Create(bookings.Select(x => x.ToDomain()).ToArray()));
             }
@@ -54,6 +63,18 @@ namespace BookingApi.Infrastructure.Repositories
             {
                 return CreateErrorResponse<ImmutableArray<Booking>>(ex, ErrorType.General);
             }
+        }
+
+        public async Task<Either<Error, Booking>> GetAsync(Guid id)
+        {
+            Func<Guid, Task<Booking>> func = async bId =>
+            {
+                var entity = await _dbContext.Bookings.Include(b => b.Contact).Include(b => b.Slots).ThenInclude(s => s.Field).FirstAsync(x => x.Id == bId);
+
+                return entity.ToDomain();
+            };
+
+            return await Execute(func, id);
         }
     }
 }

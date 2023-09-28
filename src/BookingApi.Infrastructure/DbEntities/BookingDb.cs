@@ -1,7 +1,11 @@
-﻿using BookingApi.Domain.Entities;
+using BookingApi.Domain.Entities;
 using LanguageExt;
+using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,11 +18,16 @@ namespace BookingApi.Infrastructure.DbEntities
 
         public string Name { get; set; }
 
-        public DateTime From { get; set; }
+        [Required]
+        public Guid ContactId { get; set; }
 
-        public DateTime To { get; set; }
+        [ForeignKey(nameof(ContactId))]
+        public ContactDb Contact { get; set; }
 
-        public decimal Price { get; set; }
+        public List<SlotDb> Slots { get; set; }
+
+        [Timestamp]
+        public uint Version { get; set; }
     }
 
     public static class BookingExtensions
@@ -29,9 +38,8 @@ namespace BookingApi.Infrastructure.DbEntities
             (
                 entity.Id,
                 entity.Name,
-                entity.From,
-                entity.To,
-                entity.Price
+                entity.Contact.ToDomain(),
+                entity.Slots.Select(x => x.ToDomain()).ToImmutableList()
             );
         }
 
@@ -41,9 +49,8 @@ namespace BookingApi.Infrastructure.DbEntities
             {
                 Id = domain.Id,
                 Name = domain.Name,
-                From = domain.From,
-                To = domain.To,
-                Price = domain.Price
+                ContactId = domain.Contact.Id,
+                Slots = domain.Slots.Select(x => x.ToEntity()).ToList()
             };
         }
     }

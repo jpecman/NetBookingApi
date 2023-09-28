@@ -1,20 +1,18 @@
-﻿using BookingApi.Domain.Entities;
+using BookingApi.Common.Messaging;
+using BookingApi.Domain.Entities;
+using BookingApi.Domain.Search;
+
 using LanguageExt;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BookingApi.Domain.Repositories
 {
     public interface IBookingRepository
     {
-        Task<Either<Error, ImmutableArray<Booking>>> Get(BookingSearch search);
+        Task<Either<Error, Booking>> GetAsync(Guid id);
 
-        Task<Either<Error, Booking>> Create(Booking booking);
+        Task<Either<Error, ImmutableArray<Booking>>> GetAsync(BookingSearch search);
+
+        Task<Either<Error, Guid>> CreateAsync(Booking booking);
     }
-
-    public record BookingSearch(DateTime From, DateTime To);
 }

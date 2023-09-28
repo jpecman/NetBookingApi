@@ -1,14 +1,23 @@
+using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
+using BookingApi.Domain.Search;
+
 using LanguageExt;
-using System.Reflection.Metadata.Ecma335;
+
 using static LanguageExt.Prelude;
 
 namespace BookingApi.Domain;
 
 public interface IBookingManager
 {
-    Task<Either<Error, Booking>> Create(Booking booking);
+    Task<Either<Error, Guid>> CreateAsync(Booking booking);
+
+    Task<Either<Error, Booking>> CreateRecurringAsync(Booking booking);
+
+    Task<Either<Error, Booking>> GetAsync(Guid id);
+
+    Task<Either<Error, Booking[]>> GetAsync(BookingSearch search);
 }
 
 public class BookingManager : IBookingManager
@@ -20,36 +29,66 @@ public class BookingManager : IBookingManager
         _bookingRepository = bookingRepository;
     }
 
-    public async Task<Either<Error, Booking>> Create(Booking booking)
+    public async Task<Either<Error, Guid>> CreateAsync(Booking booking)
     {
-        var repoResponse = await _bookingRepository.Create(booking);
+        var availableResponse = await IsAvailableAsync(booking);
 
-        if (repoResponse.IsLeft)
-        {
-            return repoResponse.LeftValue();
-        }
+        return await availableResponse.MatchAsync<Either<Error, Guid>>(
+            async isAvailable =>
+            {
+                if (isAvailable)
+                {
+                    var newBooking = await _bookingRepository.CreateAsync(booking);
 
-        return Right(repoResponse.RightValue());
-
-        // return Left(new Error(ErrorType.General));
-    }
-}
-
-public static class LanguageExtensions
-{
-    public static L LeftValue<L, R>(this Either<L, R> either)
-    {
-        return either.Match(
-            r => throw new InvalidOperationException("Either is right."),
-            l => l
+                    return newBooking.Match<Either<Error, Guid>>(b => b, err => err);
+                }
+                else
+                {
+                    return Left(new Error(ErrorType.Invalid, "Already exists."));
+                }
+            },
+            error => error
         );
     }
 
-    public static R RightValue<L, R>(this Either<L, R> either)
+    public async Task<Either<Error, Booking>> CreateRecurringAsync(Booking booking)
     {
-        return either.Match(
-            r => r,
-            l => throw new InvalidOperationException("Either is left.")
+        var availableResponse = await IsAvailableAsync(booking);
+
+        return await availableResponse.MatchAsync<Either<Error, Booking>>(
+            async isAvailable => new Booking(Guid.Empty, string.Empty, null, null),
+            error => error
+            );
+    }
+
+    public Task<Either<Error, Booking>> GetAsync(Guid id)
+    {
+        return _bookingRepository.GetAsync(id);
+    }
+
+    public async Task<Either<Error, Booking[]>> GetAsync(BookingSearch search)
+    {
+        var response = await _bookingRepository.GetAsync(search);
+
+        return await response.MatchAsync<Either<Error, Booking[]>>(
+                        async bookings =>
+                        {
+                            return bookings.ToArray();
+                        },
+                        error => error
+                        );
+    }
+
+    private async Task<Either<Error, bool>> IsAvailableAsync(Booking booking)
+    {
+        var repoResponse = await _bookingRepository.GetAsync(new BookingSearch(booking.From, booking.To, booking.Id));
+
+        return repoResponse.Match<Either<Error, bool>>(
+            bookings =>
+            {
+                return !bookings.Any(a => a.From <= booking.To && a.To >= booking.From);
+            },
+            error => error
         );
     }
 }
