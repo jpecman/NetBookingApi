@@ -1,0 +1,68 @@
+using System;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Security.Claims;
+using System.Text;
+using System.Threading.Tasks;
+
+using BookingApi.Domain.Services.LoginService;
+
+using LanguageExt;
+
+using Microsoft.AspNetCore.Http;
+using Microsoft.IdentityModel.Tokens;
+
+using static LanguageExt.Prelude;
+
+namespace BookingApi.Infrastructure.Services.LoginService
+{
+    public class LoginService : ILoginService
+    {
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly LoginServiceOptions _options;
+
+        public LoginService(IHttpContextAccessor httpContextAccessor, LoginServiceOptions options)
+        {
+            _httpContextAccessor = httpContextAccessor;
+            _options = options;
+        }
+
+        public async Task<Either<LoginError, LoginResponseModel>> LoginAsync(LoginRequestModel request)
+        {
+            if(request.Email == "jpecman@gmail.com" && request.Password == "***REMOVED***")
+            {
+                return Right(new LoginResponseModel(IssueToken()));
+            }
+
+            return Left(LoginError.UserNotFound);
+        }
+
+        private string IssueToken()
+        {
+            ClaimsIdentity claims = ((ClaimsIdentity)_httpContextAccessor.HttpContext.User.Identity) ?? new ClaimsIdentity();
+            claims.AddClaim(new Claim(ClaimTypes.Sid, "1"));
+
+            var now = DateTimeOffset.Now.UtcDateTime;
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_options.SigningKey));
+            var signingCredentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256Signature);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = claims,
+                Issuer = "Issuer",
+                Audience = "Audience",
+                NotBefore = now.Subtract(TimeSpan.FromHours(1)),
+                Expires = now.Add(TimeSpan.FromDays(365)),
+                SigningCredentials = signingCredentials
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var serializedToken = tokenHandler.WriteToken(token);
+
+            return serializedToken;
+        }
+    }
+}

@@ -1,12 +1,15 @@
-﻿using BookingApi.Common.Messaging;
+using BookingApi.Common.Messaging;
 using BookingApi.Domain;
 using LanguageExt;
+
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Authorize]
     public abstract class BaseApiController : ControllerBase
     {
         protected ActionResult HandleError(Error error)
