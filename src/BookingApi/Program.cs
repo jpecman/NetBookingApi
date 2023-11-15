@@ -50,10 +50,7 @@ builder.Services.AddScoped<IContactRepository, ContactRepository>();
 builder.Services.AddScoped<IFieldRepository, FieldRepository>();
 builder.Services.AddScoped<ILoginService, LoginService>();
 
-
-builder.Services.AddOptions();
-builder.Services.Configure<LoginServiceOptions>(options => new LoginServiceOptions { SigningKey = signingKey });
-
+builder.Services.AddSingleton(new LoginServiceOptions() { SigningKey = signingKey });
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 var app = builder.Build();
@@ -65,10 +62,20 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors(options => options
+    .AllowAnyOrigin()
+    .AllowAnyMethod()
+    .AllowAnyHeader());
+
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope())
+{
+    scope.ServiceProvider.GetService<BookingApiDbContext>().Database.Migrate();
+}
 
 app.Run();

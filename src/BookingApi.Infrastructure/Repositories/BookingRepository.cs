@@ -55,7 +55,7 @@ namespace BookingApi.Infrastructure.Repositories
                     Where(s => s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime()
                             && s.Duration.UpperBound.ToUniversalTime() <= search.To.ToUniversalTime()).ToListAsync();
 
-                var bookings = slots.Select(slot => slot.Booking);
+                var bookings = slots.Select(s => s.Booking).DistinctBy(b => b.Id);
 
                 return Right(ImmutableArray.Create(bookings.Select(x => x.ToDomain()).ToArray()));
             }
