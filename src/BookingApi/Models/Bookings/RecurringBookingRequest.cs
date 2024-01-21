@@ -10,14 +10,14 @@ namespace BookingApi.Models.Bookings
     (
         string Name,
         DateTime From,
-        DateTime To,
+        BookingDurationType DurationType,
         decimal Price,
         bool IsWholeField,
         ContactIdRequest Contact,
         FieldIdRequest Field,
         DateTime StartDate,
         DateTime EndDate
-    ) : BookingRequest(Name, From, To, Price, IsWholeField, Contact, Field);
+    ) : BookingRequest(Name, From, DurationType, Price, IsWholeField, Contact, Field);
 
     public static class RecurringBookingRequestExtensions
     {
@@ -31,7 +31,7 @@ namespace BookingApi.Models.Bookings
             {
                 // TODO: add validation that currentdate is the same date as the from and to dates?
                 var from = currentDate.Date.Add(request.From.TimeOfDay);
-                var to = currentDate.Date.Add(request.To.TimeOfDay);
+                var to = currentDate.Date.Add(request.GetBookingEndTime().TimeOfDay);
 
                 listBuilder.Add(new Slot(Guid.Empty, request.Name, from, to, request.Price, request.Field.ToDomain()));
 

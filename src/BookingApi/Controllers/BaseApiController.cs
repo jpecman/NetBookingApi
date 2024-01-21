@@ -1,5 +1,9 @@
+using System.Text.Json;
+
 using BookingApi.Common.Messaging;
 using BookingApi.Domain;
+using BookingApi.Models;
+
 using LanguageExt;
 
 using Microsoft.AspNetCore.Authorization;
@@ -19,7 +23,7 @@ namespace BookingApi.Controllers
                 return NotFound();
             }
 
-            return BadRequest();
+            return new BadRequestObjectResult(JsonSerializer.Serialize(new ErrorResponse(new []{ error.Message}), new JsonSerializerOptions() { WriteIndented = true}));
         }
 
         protected ActionResult HandleResponse<Tin, Tout>(Either<Error, Tin> response, Func<Tin, Tout> toResponse)

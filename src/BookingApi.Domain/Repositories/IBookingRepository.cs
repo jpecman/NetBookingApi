@@ -13,6 +13,6 @@ namespace BookingApi.Domain.Repositories
 
         Task<Either<Error, ImmutableArray<Booking>>> GetAsync(BookingSearch search);
 
-        Task<Either<Error, Guid>> CreateAsync(Booking booking);
+        Task<Either<Error, Booking>> CreateAsync(Booking booking);
     }
 }

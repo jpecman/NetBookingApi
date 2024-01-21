@@ -109,7 +109,7 @@ namespace BookingApi.Tests
         {
             var bookingController = _serviceProvider.GetRequiredService<BookingController>();
 
-            var request = new BookingRequest("Test", DateTime.Now.Date.AddHours(10), DateTime.Now.Date.AddHours(11.5), 1000, true, new ContactIdRequest(Guid.Parse(_contactId)), new FieldIdRequest(Guid.Parse(_fieldId)));
+            var request = new BookingRequest("Test", DateTime.Now.Date.AddHours(10), BookingDurationType.OneAndHalfHour, 1000, true, new ContactIdRequest(Guid.Parse(_contactId)), new FieldIdRequest(Guid.Parse(_fieldId)));
 
             var bookingResponse = await bookingController.PostAsync(request);
 

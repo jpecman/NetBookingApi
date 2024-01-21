@@ -36,9 +36,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddCors();
 
 string connectionString = builder.Configuration["CONNECTION_STRING"];
 
@@ -48,6 +52,7 @@ builder.Services.AddScoped<IBookingManager, BookingManager>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IContactRepository, ContactRepository>();
 builder.Services.AddScoped<IFieldRepository, FieldRepository>();
+builder.Services.AddScoped<ISlotRepository, SlotRepository>();
 builder.Services.AddScoped<ILoginService, LoginService>();
 
 builder.Services.AddSingleton(new LoginServiceOptions() { SigningKey = signingKey });
@@ -67,8 +72,9 @@ app.UseCors(options => options
     .AllowAnyMethod()
     .AllowAnyHeader());
 
+#if !DEBUG
 app.UseHttpsRedirection();
-
+#endif
 app.UseAuthorization();
 
 app.MapControllers();
