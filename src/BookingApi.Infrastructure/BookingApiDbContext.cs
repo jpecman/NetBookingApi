@@ -2,12 +2,15 @@
 
 using BookingApi.Infrastructure.DbEntities;
 
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+
 namespace BookingApi.Infrastructure;
 
-public class BookingApiDbContext : DbContext
+public class BookingApiDbContext : IdentityDbContext<ApplicationUser>
 {
     public BookingApiDbContext(DbContextOptions options) : base(options)
-    { 
+    {
     }
 
     public DbSet<BookingDb> Bookings { get; set; }
@@ -17,4 +20,8 @@ public class BookingApiDbContext : DbContext
     public DbSet<FieldDb> Fields { get; set; }
 
     public DbSet<SlotDb> Slots { get; set; }
+}
+
+public class ApplicationUser : IdentityUser
+{
 }

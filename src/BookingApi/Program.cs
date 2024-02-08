@@ -11,77 +11,83 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-
-var signingKey = builder.Configuration["SigningKey"];
-
-builder.Services.AddControllers();
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = false;
-
-        SecurityKey securityKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(signingKey));
-
-        options.SaveToken = true;
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = false,
-            IssuerSigningKey = securityKey,
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateLifetime = true,
-        };
-    });
 
 
+namespace BookingApi;
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddCors();
-
-string connectionString = builder.Configuration["CONNECTION_STRING"];
-
-builder.Services.AddDbContext<BookingApiDbContext>(options => options.UseNpgsql(connectionString));
-
-builder.Services.AddScoped<IBookingManager, BookingManager>();
-builder.Services.AddScoped<IBookingRepository, BookingRepository>();
-builder.Services.AddScoped<IContactRepository, ContactRepository>();
-builder.Services.AddScoped<IFieldRepository, FieldRepository>();
-builder.Services.AddScoped<ISlotRepository, SlotRepository>();
-builder.Services.AddScoped<ILoginService, LoginService>();
-
-builder.Services.AddSingleton(new LoginServiceOptions() { SigningKey = signingKey });
-builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+public class Program
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
 
-app.UseCors(options => options
-    .AllowAnyOrigin()
-    .AllowAnyMethod()
-    .AllowAnyHeader());
+        var signingKey = builder.Configuration["SigningKey"];
+
+        builder.Services.AddControllers();
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.RequireHttpsMetadata = false;
+
+                SecurityKey securityKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(signingKey));
+
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = false,
+                    IssuerSigningKey = securityKey,
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                };
+            });
+
+        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+
+        builder.Services.AddCors();
+
+        string connectionString = builder.Configuration["CONNECTION_STRING"];
+
+        builder.Services.AddDbContext<BookingApiDbContext>(options => options.UseNpgsql(connectionString));
+
+        builder.Services.AddScoped<IBookingManager, BookingManager>();
+        builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+        builder.Services.AddScoped<IContactRepository, ContactRepository>();
+        builder.Services.AddScoped<IFieldRepository, FieldRepository>();
+        builder.Services.AddScoped<ISlotRepository, SlotRepository>();
+        builder.Services.AddScoped<ILoginService, LoginService>();
+
+        builder.Services.AddSingleton(new LoginServiceOptions() { SigningKey = signingKey });
+        builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
+        var app = builder.Build();
+
+        // Configure the HTTP request pipeline.
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseCors(options => options
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader());
 
 #if !DEBUG
 app.UseHttpsRedirection();
 #endif
-app.UseAuthorization();
+        app.UseAuthorization();
 
-app.MapControllers();
+        app.MapControllers();
 
-using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope())
-{
-    scope.ServiceProvider.GetService<BookingApiDbContext>().Database.Migrate();
+        using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope())
+        {
+            scope.ServiceProvider.GetService<BookingApiDbContext>().Database.Migrate();
+        }
+
+        app.Run();
+    }
 }
-
-app.Run();
