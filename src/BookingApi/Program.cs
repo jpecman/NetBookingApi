@@ -8,6 +8,7 @@ using BookingApi.Infrastructure.Repositories;
 using BookingApi.Infrastructure.Services.LoginService;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -17,11 +18,20 @@ namespace BookingApi;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        var signingKey = builder.Configuration["SigningKey"];
+        var configuration = builder.Configuration;
+
+        var signingKey = configuration["SigningKey"];
+
+        IdentityBuilder identityBuilder = builder.Services.AddIdentityCore<ApplicationUser>();
+        identityBuilder.AddRoles<IdentityRole>();
+        identityBuilder.AddRoleValidator<RoleValidator<IdentityRole>>();
+        identityBuilder.AddRoleManager<RoleManager<IdentityRole>>();
+        identityBuilder.AddSignInManager<SignInManager<ApplicationUser>>();
+        identityBuilder.AddEntityFrameworkStores<BookingApiDbContext>();
 
         builder.Services.AddControllers();
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -48,7 +58,7 @@ public class Program
 
         builder.Services.AddCors();
 
-        string connectionString = builder.Configuration["CONNECTION_STRING"];
+        string connectionString = configuration["CONNECTION_STRING"];
 
         builder.Services.AddDbContext<BookingApiDbContext>(options => options.UseNpgsql(connectionString));
 
@@ -83,11 +93,74 @@ app.UseHttpsRedirection();
 
         app.MapControllers();
 
-        using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope())
-        {
-            scope.ServiceProvider.GetService<BookingApiDbContext>().Database.Migrate();
-        }
+        using var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
+
+        await MigrateDatabaseAsync(scope);
+        await EnsureRolesAndAdminAccountAsync(scope, configuration);
 
         app.Run();
+    }
+
+    private static async Task MigrateDatabaseAsync(IServiceScope scope)
+    {
+        var dbContext = scope.ServiceProvider.GetService<BookingApiDbContext>();
+        await dbContext.Database.MigrateAsync();
+    }
+
+    private static async Task EnsureRolesAndAdminAccountAsync(IServiceScope scope, ConfigurationManager configuration)
+    {
+        var loggerFactory = scope.ServiceProvider.GetService<ILoggerFactory>();
+        var roleManager = scope.ServiceProvider.GetService<RoleManager<IdentityRole>>();
+        var userManager = scope.ServiceProvider.GetService<UserManager<ApplicationUser>>();
+        ILogger logger = loggerFactory.CreateLogger<Program>();
+
+        await CreateRoleIfNeededAsync(logger, roleManager, UserRoles.Administrator);
+        await CreateRoleIfNeededAsync(logger, roleManager, UserRoles.Content);
+
+        // try to create the admin
+        try
+        {
+            var user = await userManager.Users.FirstOrDefaultAsync(u => u.Email == "jpecman@gmail.com");
+
+            if (user == null)
+            {
+                user = new ApplicationUser() { Email = "jpecman@gmail.com", UserName = "jpecman@gmail.com" };
+
+                var password = configuration["JPECMAN_PASSWORD"];
+
+                await userManager.CreateAsync(user, password);
+                var result = await userManager.AddToRoleAsync(user, UserRoles.Administrator);
+
+                if (!result.Succeeded)
+                {
+                    logger.LogError("Failed to add user jpecman@gmail.com to Administrators");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to add user jpecman@gmail.com to Administrators");
+        }
+
+    }
+
+    private static async Task CreateRoleIfNeededAsync(ILogger logger, RoleManager<IdentityRole> roleManager, string roleName)
+    {
+        try
+        {
+            if (!await roleManager.RoleExistsAsync(roleName))
+            {
+                var result = await roleManager.CreateAsync(new IdentityRole(roleName));
+
+                if (!result.Succeeded)
+                {
+                    logger.LogError($"Failed to create role '{roleName}'");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error when creating roles");
+        }
     }
 }

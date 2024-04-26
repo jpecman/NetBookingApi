@@ -1,6 +1,9 @@
+using System.Collections.Immutable;
+
 using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
+using BookingApi.Domain.Search;
 using BookingApi.Models.Contacts;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,6 +28,19 @@ namespace BookingApi.Controllers
             if (response is Success<Contact> success)
             {
                 return Ok(success.Data.ToResponse());
+            }
+
+            return BadRequest();
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<ContactResponse[]>> GetAsync()
+        {
+            var response = await _repo.SearchAsync(ContactSearch.Empty());
+
+            if (response is Success<ImmutableArray<Contact>> success)
+            {
+                return Ok(success.Data.Select(c => c.ToResponse()));
             }
 
             return BadRequest();

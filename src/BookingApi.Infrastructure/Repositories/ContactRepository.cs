@@ -13,6 +13,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Microsoft.EntityFrameworkCore;
+
 namespace BookingApi.Infrastructure.Repositories
 {
     public class ContactRepository : Repository, IContactRepository
@@ -28,7 +30,7 @@ namespace BookingApi.Infrastructure.Repositories
 
         public async Task<Response<Contact>> Create(Contact entity)
         {
-            Func<Contact, Task<Contact>> func = async c => 
+            Func<Contact, Task<Contact>> func = async c =>
             {
                 var dbEntity = c.ToEntity();
 
@@ -53,7 +55,14 @@ namespace BookingApi.Infrastructure.Repositories
 
         public Task<Response<ImmutableArray<Contact>>> SearchAsync(ContactSearch search)
         {
-            throw new NotImplementedException();
+            Func<ContactSearch, Task<ImmutableArray<Contact>>> func = async s =>
+            {
+                var contacts = await _dbContext.Contacts.ToListAsync();
+
+                return contacts.Select(c => c.ToDomain()).ToImmutableArray();
+            };
+
+            return Execute(func, search);
         }
 
         public Task<Response<Contact>> Update(Contact entity)

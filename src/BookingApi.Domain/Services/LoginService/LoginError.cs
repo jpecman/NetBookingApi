@@ -10,6 +10,6 @@ namespace BookingApi.Domain.Services.LoginService
     {
         InvalidParameters,
         UserNotFound,
-        UserBlocked
+        UserLockedOut
     }
 }

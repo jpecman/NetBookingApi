@@ -11,6 +11,8 @@ using BookingApi.Domain.Services.LoginService;
 using LanguageExt;
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 using static LanguageExt.Prelude;
@@ -21,21 +23,41 @@ namespace BookingApi.Infrastructure.Services.LoginService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly LoginServiceOptions _options;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly ILogger<LoginService> _logger;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public LoginService(IHttpContextAccessor httpContextAccessor, LoginServiceOptions options)
+        public LoginService(
+            IHttpContextAccessor httpContextAccessor,
+            LoginServiceOptions options,
+            SignInManager<ApplicationUser> signInManager,
+            ILogger<LoginService> logger,
+            UserManager<ApplicationUser> userManager
+        )
         {
             _httpContextAccessor = httpContextAccessor;
             _options = options;
+            _signInManager = signInManager;
+            _logger = logger;
+            _userManager = userManager;
         }
 
         public async Task<Either<LoginError, LoginResponseModel>> LoginAsync(LoginRequestModel request)
         {
-            if(request.Email == "jpecman@gmail.com" && request.Password == "***REMOVED***")
+            var user = await _userManager.FindByEmailAsync(request.Email);
+
+            if (user == null)
+            {
+                return Left(LoginError.UserNotFound);
+            }
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, true);
+            if (result.Succeeded)
             {
                 return Right(new LoginResponseModel(IssueToken()));
             }
 
-            return Left(LoginError.UserNotFound);
+            return Left(LoginError.UserLockedOut);
         }
 
         private string IssueToken()
