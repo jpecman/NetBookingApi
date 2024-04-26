@@ -272,3 +272,4 @@ FakesAssemblies/
 # -------- Setting for mac os
 
 .DS_Store
+**/.DS_Store

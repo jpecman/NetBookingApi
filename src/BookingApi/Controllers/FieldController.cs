@@ -1,4 +1,4 @@
-﻿using BookingApi.Common.Messaging;
+using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
 using BookingApi.Models.Fields;
@@ -16,6 +16,7 @@ namespace BookingApi.Controllers
             _repo = repo;
         }
 
+        [HttpPost]
         public async Task<ActionResult<FieldResponse>> PostAsync(
             [FromBody] CreateFieldRequest field
         )

@@ -9,7 +9,7 @@ namespace BookingApi.Common.Messaging
     public record Error
     (
         ErrorType ErrorType,
-        string Message // TODO: there should be no message, log it and return error type
+        string Message
     )
     {
         public static Error Create(ErrorType errorType) => new Error(errorType, string.Empty);

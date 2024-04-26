@@ -32,16 +32,16 @@ namespace BookingApi.Infrastructure.Repositories
             _logger = logger;
         }
 
-        public async Task<Either<Error, Guid>> CreateAsync(Booking booking)
+        public async Task<Either<Error, Booking>> CreateAsync(Booking booking)
         {
-            Func<Booking, Task<Guid>> func = async b =>
+            Func<Booking, Task<Booking>> func = async b =>
             {
                 var dbEntity = b.ToEntity();
 
                 var entry = _dbContext.Bookings.Add(dbEntity);
                 await _dbContext.SaveChangesAsync();
 
-                return entry.Entity.Id;
+                return entry.Entity.ToDomain();
             };
 
             return await Execute(func, booking);
@@ -55,7 +55,7 @@ namespace BookingApi.Infrastructure.Repositories
                     Where(s => s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime()
                             && s.Duration.UpperBound.ToUniversalTime() <= search.To.ToUniversalTime()).ToListAsync();
 
-                var bookings = slots.Select(slot => slot.Booking);
+                var bookings = slots.Select(s => s.Booking).DistinctBy(b => b.Id);
 
                 return Right(ImmutableArray.Create(bookings.Select(x => x.ToDomain()).ToArray()));
             }
