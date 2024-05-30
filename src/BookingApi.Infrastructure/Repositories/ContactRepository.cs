@@ -48,9 +48,16 @@ namespace BookingApi.Infrastructure.Repositories
             throw new NotImplementedException();
         }
 
-        public Task<Response<Contact>> GetAsync(Guid id)
+        public async Task<Response<Contact>> GetAsync(Guid id)
         {
-            throw new NotImplementedException();
+            Func<Guid, Task<Contact>> func = async cId =>
+            {
+                var entity = await _dbContext.Contacts.FirstAsync(x => x.Id == cId);
+
+                return entity.ToDomain();
+            };
+
+            return await Execute(func, id);
         }
 
         public Task<Response<ImmutableArray<Contact>>> SearchAsync(ContactSearch search)

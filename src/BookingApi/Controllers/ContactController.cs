@@ -45,5 +45,18 @@ namespace BookingApi.Controllers
 
             return BadRequest();
         }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ContactResponse>> GetAsync(Guid id)
+        {
+            var response = await _repo.GetAsync(id);
+
+            if (response is Success<Contact> success)
+            {
+                return Ok(success.Data.ToResponse());
+            }
+
+            return BadRequest();
+        }
     }
 }
