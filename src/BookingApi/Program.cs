@@ -24,7 +24,7 @@ public class Program
 
         var configuration = builder.Configuration;
 
-        var signingKey = configuration["SigningKey"];
+        var signingKey = configuration["SIGNING_KEY"];
 
         IdentityBuilder identityBuilder = builder.Services.AddIdentityCore<ApplicationUser>();
         identityBuilder.AddRoles<IdentityRole>();
