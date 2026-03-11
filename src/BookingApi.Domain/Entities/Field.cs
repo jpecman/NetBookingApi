@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
@@ -10,9 +11,10 @@ namespace BookingApi.Domain.Entities
     public record Field
     (
         Guid Id,
-        string Name
+        string Name,
+        ImmutableArray<Pitch> Pitches
     )
     {
-        public static Field EmptyWithId(Guid id) => new Field(id, string.Empty);
+        public static Field EmptyWithId(Guid id) => new Field(id, string.Empty, new ImmutableArray<Pitch>());
     }
 }

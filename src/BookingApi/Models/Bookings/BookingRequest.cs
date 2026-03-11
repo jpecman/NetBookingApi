@@ -1,6 +1,7 @@
 
 using System.Collections.Immutable;
 
+using BookingApi.Domain.Commands;
 using BookingApi.Domain.Entities;
 using BookingApi.Models.Contacts;
 using BookingApi.Models.Fields;
@@ -10,23 +11,18 @@ namespace BookingApi.Models.Bookings;
 public record BookingRequest(
     string Name,
     DateTime From,
-    BookingDurationType Duration,
+    int Duration,
     decimal Price,
     bool IsWholeField,
-    ContactIdRequest Contact,
-    FieldIdRequest Field
+    Guid ContactId,
+    Guid FieldId
 );
 
-public enum BookingDurationType : int
-{
-    OneHour = 1,
-    OneAndHalfHour = 2,
-    TwoHours = 3
-}
+
 
 public static class BookingRequestExtensions
 {
-    public static Booking ToDomain(this BookingRequest request)
+    public static CreateBookingCommand ToDomain(this BookingRequest request)
     {
         var listBuilder = ImmutableList.CreateBuilder<Slot>();
 

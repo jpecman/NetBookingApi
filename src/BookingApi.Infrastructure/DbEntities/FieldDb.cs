@@ -1,6 +1,7 @@
 ﻿using BookingApi.Domain.Entities;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
@@ -16,14 +17,13 @@ namespace BookingApi.Infrastructure.DbEntities
 
         [Timestamp]
         public uint Version { get; set; }
+
+        public ICollection<PitchDb> Pitches { get; set; }
     }
 
     public static class FieldExtensions
     {
-        public static Field ToDomain(this FieldDb entity)
-        {
-            return new Field(entity.Id, entity.Name);
-        }
+        public static Field ToDomain(this FieldDb entity) => new(entity.Id, entity.Name, [..entity.Pitches.Select(x => x.ToDomain())]);
 
         public static FieldDb ToEntity(this Field entity)
         {

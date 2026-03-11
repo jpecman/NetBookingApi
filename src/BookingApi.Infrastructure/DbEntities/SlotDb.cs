@@ -21,10 +21,10 @@ namespace BookingApi.Infrastructure.DbEntities
         public decimal Price { get; set; }
 
         [Required]
-        public Guid FieldId { get; set; }
+        public Guid PitchId { get; set; }
 
-        [ForeignKey(nameof(FieldId))]
-        public FieldDb Field { get; set; }
+        [ForeignKey(nameof(PitchId))]
+        public PitchDb Pitch { get; set; }
 
         [Required]
         public Guid BookingId { get; set; }
@@ -47,7 +47,7 @@ namespace BookingApi.Infrastructure.DbEntities
                 entity.Duration.LowerBound,
                 entity.Duration.UpperBound,
                 entity.Price,
-                entity.Field.ToDomain()
+                entity.PitchId
             );
         }
 
@@ -59,7 +59,7 @@ namespace BookingApi.Infrastructure.DbEntities
                 Name = domain.Name,
                 Duration = new NpgsqlRange<DateTime>(domain.From.ToUniversalTime(), domain.To.ToUniversalTime()),
                 Price = domain.Price,
-                FieldId = domain.Field.Id
+                PitchId = domain.PitchId
             };
         }
 

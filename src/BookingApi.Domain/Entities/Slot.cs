@@ -15,6 +15,6 @@ namespace BookingApi.Domain.Entities
         DateTime From,
         DateTime To,
         decimal Price,
-        Field Field
+        Guid PitchId
     );
 }

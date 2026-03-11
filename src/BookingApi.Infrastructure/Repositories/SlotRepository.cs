@@ -27,7 +27,7 @@ public class SlotRepository : Repository, ISlotRepository
     {
         try
         {
-            var slots = await _dbContext.Slots.Include(s => s.Field)
+            var slots = await _dbContext.Slots.Include(s => s.Pitch)
                 .Where(s => s.Duration.LowerBound >= search.From.ToUniversalTime() && s.Duration.UpperBound <= search.To.ToUniversalTime())
                 .ToListAsync();
 

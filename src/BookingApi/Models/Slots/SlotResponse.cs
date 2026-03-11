@@ -11,7 +11,7 @@ namespace BookingApi.Models.Slots
         DateTime From,
         DateTime To,
         decimal Price,
-        FieldResponse Field
+        Guid PitchId
     );
 }
 
@@ -25,7 +25,7 @@ public static class SlotsExtensions
                     s.From,
                     s.To,
                     s.Price,
-                    s.Field.ToResponse()
+                    s.PitchId
                     );
     }
 }
