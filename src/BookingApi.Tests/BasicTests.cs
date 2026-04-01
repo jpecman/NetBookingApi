@@ -1,5 +1,6 @@
 using BookingApi.Controllers;
 using BookingApi.Domain;
+using BookingApi.Domain.Commands;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Repositories;
 using BookingApi.Infrastructure;
@@ -81,12 +82,12 @@ namespace BookingApi.Tests
 
                 dbContext.Fields.Add(new Infrastructure.DbEntities.FieldDb
                 {
-                    Id = Guid.Parse(_fieldId),
+                    Id = _fieldId,
                     Name = "Field 1"
                 });
                 dbContext.Contacts.Add(new Infrastructure.DbEntities.ContactDb
                 {
-                    Id = Guid.Parse(_contactId),
+                    Id = _contactId,
                     FirstName = "Jirka",
                     LastName = "Sirka",
                     Email = "jpecman@gmail.com",
@@ -101,15 +102,15 @@ namespace BookingApi.Tests
             }
         }
 
-        private const string _fieldId = "1E7AAE86-F1A9-4B39-85B1-778CACD5732E";
-        private const string _contactId = "BE20E86E-D5B3-4BD6-A5A9-1B705D1FC88C";
+        private static readonly Guid _fieldId = new("1E7AAE86-F1A9-4B39-85B1-778CACD5732E");
+        private static readonly Guid _contactId = new("BE20E86E-D5B3-4BD6-A5A9-1B705D1FC88C");
 
         [TestMethod]
         public async Task BasicTestAsync()
         {
             var bookingController = _serviceProvider.GetRequiredService<BookingController>();
 
-            var request = new BookingRequest("Test", DateTime.Now.Date.AddHours(10), BookingDurationType.OneAndHalfHour, 1000, true, new ContactIdRequest(Guid.Parse(_contactId)), new FieldIdRequest(Guid.Parse(_fieldId)));
+            var request = new BookingRequest("Test", DateTime.Now.Date.AddHours(10), (int) BookingDurationType.OneAndHalfHour, 1000, true, _contactId, _fieldId);
 
             var bookingResponse = await bookingController.PostAsync(request);
 

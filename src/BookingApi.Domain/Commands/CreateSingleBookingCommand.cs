@@ -1,6 +1,6 @@
 namespace BookingApi.Domain.Commands;
 
-public record CreateBookingCommand(
+public record CreateSingleBookingCommand(
     string Name,
     DateTime From,
     BookingDurationType Duration, // e.g., OneHour, TwoHours

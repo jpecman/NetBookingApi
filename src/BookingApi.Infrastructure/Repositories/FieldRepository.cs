@@ -26,7 +26,7 @@ namespace BookingApi.Infrastructure.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<Response<Field>> Create(Field entity)
+        public async Task<Either<Error, Field>> Create(Field entity)
         {
             Func<Field, Task<Field>> func = async f =>
             {
@@ -41,52 +41,31 @@ namespace BookingApi.Infrastructure.Repositories
             return await Execute(func, entity);
         }
 
-        public Task<Response> Delete(Guid id)
+        public Task<Either<Error, bool>> Delete(Guid id)
         {
             throw new NotImplementedException();
         }
 
-        public Task<Response<Field>> GetAsync(Guid id)
+        public Task<Either<Error, Field>> GetAsync(Guid id)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task<Response<ImmutableArray<Field>>> SearchAsync(FieldSearch search)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<Response<Field>> Update(Field entity)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected async Task<Response<Result>> Execute<Parameters, Result>(
-            Func<Parameters, Task<Result>> func,
-            Parameters prms
-        )
-        {
-            try
+            Func<Guid, Task<Field>> func = async id =>
             {
-                var result = await func(prms);
+                var dbEntity = await _dbContext.Fields.FindAsync(id);
 
-                return new Success<Result> { Data = result };
-            }
-            catch (InvalidOperationException invEx)
-            {
-                _logger.LogError(invEx.Message);
-                return CreateErrorResponse<Result>(ErrorType.NotFound);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message);
-                return CreateErrorResponse<Result>(ErrorType.General);
-            }
+                return dbEntity.ToDomain();
+            };
+
+            return Execute(func, id);
         }
 
-        protected Response<T> CreateErrorResponse<T>(ErrorType errorType)
+        public Task<Either<Error, ImmutableArray<Field>>> SearchAsync(FieldSearch search)
         {
-            return new Failure<T> { Error = errorType };
+            throw new NotImplementedException();
+        }
+
+        public Task<Either<Error, Field>> Update(Field entity)
+        {
+            throw new NotImplementedException();
         }
     }
 }

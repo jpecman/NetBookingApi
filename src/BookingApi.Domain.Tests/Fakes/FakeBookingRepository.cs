@@ -11,7 +11,7 @@ using static LanguageExt.Prelude;
 
 namespace BookingApi.Domain.Tests.Fakes
 {
-    internal class FakeRepository : IBookingRepository
+    internal class FakeBookingRepository : IBookingRepository
     {
         private readonly Dictionary<(DateTime From, DateTime To), Booking> _storage =
             new Dictionary<(DateTime, DateTime), Booking>();

@@ -17,18 +17,11 @@ namespace BookingApi.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<FieldResponse>> PostAsync(
-            [FromBody] CreateFieldRequest field
-        )
+        public async Task<ActionResult<FieldResponse>> PostAsync([FromBody] CreateFieldRequest field)
         {
             var response = await _repo.Create(field.ToDomain());
 
-            if (response is Success<Field> success)
-            {
-                return Ok(success.Data.ToResponse());
-            }
-
-            return BadRequest();
+            return HandleResponse(response, x => x.ToResponse());
         }
     }
 }

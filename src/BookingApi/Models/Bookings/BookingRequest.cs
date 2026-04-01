@@ -18,51 +18,18 @@ public record BookingRequest(
     Guid FieldId
 );
 
-
-
 public static class BookingRequestExtensions
 {
-    public static CreateBookingCommand ToDomain(this BookingRequest request)
+    public static CreateSingleBookingCommand ToDomain(this BookingRequest request)
     {
-        var listBuilder = ImmutableList.CreateBuilder<Slot>();
-
-        var to = request.GetBookingEndTime();
-
-        listBuilder.Add(new Slot(Guid.Empty, request.Name, request.From, to, request.Price, request.Field.ToDomain()));
-
-        var booking = new Booking
-        (
-            Guid.Empty,
+        return new CreateSingleBookingCommand(
             request.Name,
-            request.Contact.ToDomain(),
-            listBuilder.ToImmutable()
+            request.From,
+            (BookingDurationType)request.Duration, // TODO: Check this
+            request.Price,
+            request.IsWholeField,
+            request.ContactId,
+            request.FieldId
         );
-
-        return booking;
-    }
-
-    public static DateTime GetBookingEndTime(this BookingRequest request)
-    {
-        return request.From.AddHours(request.Duration.GetEventLength());
-    }
-
-    private static double GetEventLength(this BookingDurationType bt)
-    {
-        if (bt == BookingDurationType.TwoHours)
-        {
-            return 2; // 2 hours for a match
-        }
-        else if (bt == BookingDurationType.OneAndHalfHour)
-        {
-            return 1.5;
-        }
-        else if (bt == BookingDurationType.OneHour)
-        {
-            return 1;
-        }
-        else
-        {
-            return 1.5;
-        }
     }
 }

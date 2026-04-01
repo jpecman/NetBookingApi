@@ -62,11 +62,5 @@ namespace BookingApi.Infrastructure.DbEntities
                 PitchId = domain.PitchId
             };
         }
-
-        // TODO: move to common
-        private static DateTime GetDateTime(DateOnly date, TimeOnly time)
-        {
-            return new DateTime(date.Year, date.Month, date.Day) + time.ToTimeSpan();
-        }
     }
 }

@@ -4,14 +4,16 @@ using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Search;
 
+using LanguageExt;
+
 namespace BookingApi.Domain.Repositories
 {
     public interface IFieldRepository
     {
-        Task<Response<Field>> GetAsync(Guid id);
-        Task<Response<ImmutableArray<Field>>> SearchAsync(FieldSearch search);
-        Task<Response<Field>> Create(Field entity);
-        Task<Response<Field>> Update(Field entity);
-        Task<Response> Delete(Guid id);
+        Task<Either<Error, Field>> GetAsync(Guid id);
+        Task<Either<Error, ImmutableArray<Field>>> SearchAsync(FieldSearch search);
+        Task<Either<Error, Field>> Create(Field entity);
+        Task<Either<Error, Field>> Update(Field entity);
+        Task<Either<Error, bool>> Delete(Guid id);
     }
 }

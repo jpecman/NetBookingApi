@@ -12,9 +12,9 @@ namespace BookingApi.Domain;
 
 public interface IBookingManager
 {
-    Task<Either<Error, Booking>> CreateAsync(CreateBookingCommand command);
+    Task<Either<Error, Booking>> CreateAsync(CreateSingleBookingCommand command);
 
-    Task<Either<Error, Booking>> CreateRecurringAsync(Booking booking);
+    Task<Either<Error, Booking>> CreateRecurringAsync(CreateRecurringBookingCommand booking);
 
     Task<Either<Error, Booking>> GetAsync(Guid id);
 
@@ -35,13 +35,13 @@ public class BookingManager : IBookingManager
         _fieldRepository = fieldRepository;
     }
 
-    public async Task<Either<Error, Booking>> CreateAsync(CreateBookingCommand command)
+    public async Task<Either<Error, Booking>> CreateAsync(CreateSingleBookingCommand command)
     {
         var fieldId = command.FieldId;
 
         var allPitchesForField = await _fieldRepository.GetAsync(fieldId);
 
-        // var availableResponse = await IsAvailableAsync(booking);
+
         var booking = new Booking(Guid.NewGuid(), string.Empty, null, null);
 
 
@@ -51,14 +51,13 @@ public class BookingManager : IBookingManager
 
     }
 
-    public async Task<Either<Error, Booking>> CreateRecurringAsync(Booking booking)
+    public async Task<Either<Error, Booking>> CreateRecurringAsync(CreateRecurringBookingCommand command)
     {
-        // var availableResponse = await IsAvailableAsync(booking);
+        var booking = new Booking(Guid.NewGuid(), string.Empty, null, null);
 
-        return await availableResponse.MatchAsync<Either<Error, Booking>>(
-            async isAvailable => new Booking(Guid.Empty, string.Empty, null, null),
-            error => error
-            );
+        var newBooking = await _bookingRepository.CreateAsync(booking);
+
+        return newBooking.Match<Either<Error, Booking>>(b => b, err => err);
     }
 
     public Task<Either<Error, Booking>> GetAsync(Guid id)
@@ -78,17 +77,4 @@ public class BookingManager : IBookingManager
                         error => error
                         );
     }
-
-    // private async Task<Either<Error, bool>> IsAvailableAsync(Booking booking)
-    // {
-    //     var repoResponse = await _bookingRepository.GetAsync(new BookingSearch(booking.From, booking.To, booking.Id));
-    //
-    //     return repoResponse.Match<Either<Error, bool>>(
-    //         bookings =>
-    //         {
-    //             return !bookings.Any(a => a.From <= booking.To && a.To >= booking.From);
-    //         },
-    //         error => error
-    //     );
-    // }
 }
