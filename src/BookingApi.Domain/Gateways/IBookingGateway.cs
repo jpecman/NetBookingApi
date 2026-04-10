@@ -5,9 +5,9 @@ using BookingApi.Domain.Search;
 using LanguageExt;
 using System.Collections.Immutable;
 
-namespace BookingApi.Domain.Repositories
+namespace BookingApi.Domain.Gateways
 {
-    public interface IBookingRepository
+    public interface IBookingGateway
     {
         Task<Either<Error, Booking>> GetAsync(Guid id);
 

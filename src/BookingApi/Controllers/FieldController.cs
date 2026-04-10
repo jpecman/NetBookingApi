@@ -1,27 +1,49 @@
-using BookingApi.Common.Messaging;
-using BookingApi.Domain.Entities;
-using BookingApi.Domain.Repositories;
+using BookingApi.Domain.Gateways;
 using BookingApi.Models.Fields;
 
 using Microsoft.AspNetCore.Mvc;
 
-namespace BookingApi.Controllers
+namespace BookingApi.Controllers;
+
+public class FieldController(IFieldGateway fieldGateway, ILogger<FieldController> logger) : BaseApiController(logger)
 {
-    public class FieldController : BaseApiController
+    [HttpPost]
+    public async Task<ActionResult<FieldResponse>> PostAsync([FromBody] CreateFieldRequest request)
     {
-        private readonly IFieldRepository _repo;
+        var result = await fieldGateway.Create(request.ToDomain());
 
-        public FieldController(IFieldRepository repo)
-        {
-            _repo = repo;
-        }
+        return HandleResponse(result, f => f.ToResponse());
+    }
 
-        [HttpPost]
-        public async Task<ActionResult<FieldResponse>> PostAsync([FromBody] CreateFieldRequest field)
-        {
-            var response = await _repo.Create(field.ToDomain());
+    [HttpGet]
+    public async Task<ActionResult<FieldResponse[]>> GetAsync()
+    {
+        var result = await fieldGateway.GetAllAsync();
 
-            return HandleResponse(response, x => x.ToResponse());
-        }
+        return HandleResponse(result, fields => fields.Select(f => f.ToResponse()).ToArray());
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<FieldResponse>> GetAsync(Guid id)
+    {
+        var result = await fieldGateway.GetAsync(id);
+
+        return HandleResponse(result, f => f.ToResponse());
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<FieldResponse>> PutAsync(Guid id, [FromBody] UpdateFieldRequest request)
+    {
+        var result = await fieldGateway.Update(request.ToDomain(id));
+
+        return HandleResponse(result, f => f.ToResponse());
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteAsync(Guid id)
+    {
+        var result = await fieldGateway.Delete(id);
+
+        return result.Match<ActionResult>(_ => NoContent(), HandleError);
     }
 }

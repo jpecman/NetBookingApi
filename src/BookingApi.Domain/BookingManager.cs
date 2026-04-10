@@ -1,7 +1,8 @@
+using System.Collections.Immutable;
 using BookingApi.Common.Messaging;
 using BookingApi.Domain.Commands;
 using BookingApi.Domain.Entities;
-using BookingApi.Domain.Repositories;
+using BookingApi.Domain.Gateways;
 using BookingApi.Domain.Search;
 
 using LanguageExt;
@@ -23,51 +24,56 @@ public interface IBookingManager
 
 public class BookingManager : IBookingManager
 {
-    private readonly IBookingRepository _bookingRepository;
-    private readonly IFieldRepository _fieldRepository;
+    private readonly IBookingGateway _bookingGateway;
+    private readonly IFieldGateway _fieldGateway;
 
     public BookingManager(
-        IBookingRepository bookingRepository,
-        IFieldRepository fieldRepository
+        IBookingGateway bookingGateway,
+        IFieldGateway fieldGateway
     )
     {
-        _bookingRepository = bookingRepository;
-        _fieldRepository = fieldRepository;
+        _bookingGateway = bookingGateway;
+        _fieldGateway = fieldGateway;
     }
 
     public async Task<Either<Error, Booking>> CreateAsync(CreateSingleBookingCommand command)
     {
-        var fieldId = command.FieldId;
+        var fieldResult = await _fieldGateway.GetAsync(command.FieldId);
 
-        var allPitchesForField = await _fieldRepository.GetAsync(fieldId);
+        return await fieldResult.MatchAsync<Either<Error, Booking>>(
+            async field =>
+            {
+                var to = command.From.AddMinutes((int)command.Duration);
+                var slots = field.Pitches
+                    .Select(pitch => new Slot(Guid.NewGuid(), command.Name, command.From, to, command.Price, pitch.Id))
+                    .ToImmutableList();
 
+                var booking = new Booking(Guid.NewGuid(), command.Name, Contact.EmptyWithId(command.ContactId), slots);
 
-        var booking = new Booking(Guid.NewGuid(), string.Empty, null, null);
-
-
-        var newBooking = await _bookingRepository.CreateAsync(booking);
-
-        return newBooking.Match<Either<Error, Booking>>(b => b, err => err);
-
+                var newBooking = await _bookingGateway.CreateAsync(booking);
+                return newBooking.Match<Either<Error, Booking>>(b => b, err => err);
+            },
+            err => err
+        );
     }
 
     public async Task<Either<Error, Booking>> CreateRecurringAsync(CreateRecurringBookingCommand command)
     {
         var booking = new Booking(Guid.NewGuid(), string.Empty, null, null);
 
-        var newBooking = await _bookingRepository.CreateAsync(booking);
+        var newBooking = await _bookingGateway.CreateAsync(booking);
 
         return newBooking.Match<Either<Error, Booking>>(b => b, err => err);
     }
 
     public Task<Either<Error, Booking>> GetAsync(Guid id)
     {
-        return _bookingRepository.GetAsync(id);
+        return _bookingGateway.GetAsync(id);
     }
 
     public async Task<Either<Error, Booking[]>> GetAsync(BookingSearch search)
     {
-        var response = await _bookingRepository.GetAsync(search);
+        var response = await _bookingGateway.GetAsync(search);
 
         return await response.MatchAsync<Either<Error, Booking[]>>(
                         async bookings =>

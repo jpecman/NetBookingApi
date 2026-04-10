@@ -6,9 +6,9 @@ using BookingApi.Domain.Search;
 
 using LanguageExt;
 
-namespace BookingApi.Domain.Repositories;
+namespace BookingApi.Domain.Gateways;
 
-public interface ISlotRepository
+public interface ISlotGateway
 {
     Task<Either<Error, ImmutableArray<Slot>>> GetAsync(SlotSearch search);
 }

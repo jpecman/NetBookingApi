@@ -25,11 +25,14 @@ public static class PitchExtensions
 {
     public static Pitch ToDomain(this PitchDb pitch)
     {
-        return new Pitch(pitch.Id, pitch.Name, pitch.FieldId, [..pitch.Slots.Select(x => x.ToDomain())]);
+        var slots = pitch.Slots != null
+            ? [..pitch.Slots.Select(x => x.ToDomain())]
+            : ImmutableArray<Slot>.Empty;
+        return new Pitch(pitch.Id, pitch.Name, pitch.FieldId, slots);
     }
 
     public static PitchDb ToEntity(this Pitch pitch)
     {
-        return new PitchDb { Id = pitch.Id, };
+        return new PitchDb { Id = pitch.Id, Name = pitch.Name, FieldId = pitch.FieldId };
     }
 }

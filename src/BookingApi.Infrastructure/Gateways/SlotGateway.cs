@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
-using BookingApi.Domain.Repositories;
+using BookingApi.Domain.Gateways;
 using BookingApi.Domain.Search;
 using BookingApi.Infrastructure.DbEntities;
 
@@ -12,13 +12,13 @@ using Microsoft.EntityFrameworkCore;
 
 using static LanguageExt.Prelude;
 
-namespace BookingApi.Infrastructure.Repositories;
+namespace BookingApi.Infrastructure.Gateways;
 
-public class SlotRepository : Repository, ISlotRepository
+public class SlotGateway : Gateway, ISlotGateway
 {
     private readonly BookingApiDbContext _dbContext;
 
-    public SlotRepository(BookingApiDbContext dbContext)
+    public SlotGateway(BookingApiDbContext dbContext)
     {
         _dbContext = dbContext;
     }

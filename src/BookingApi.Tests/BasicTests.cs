@@ -1,23 +1,17 @@
 using BookingApi.Controllers;
 using BookingApi.Domain;
 using BookingApi.Domain.Commands;
-using BookingApi.Domain.Entities;
-using BookingApi.Domain.Repositories;
+using BookingApi.Domain.Gateways;
 using BookingApi.Infrastructure;
-using BookingApi.Infrastructure.Repositories;
+using BookingApi.Infrastructure.DbEntities;
+using BookingApi.Infrastructure.Gateways;
 using BookingApi.Models.Bookings;
 using BookingApi.Models.Contacts;
-using BookingApi.Models.Fields;
-
-using DotNet.Testcontainers.Builders;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-
-using System.Collections.Immutable;
 
 using Testcontainers.PostgreSql;
 
@@ -29,102 +23,106 @@ namespace BookingApi.Tests
         private IServiceProvider _serviceProvider;
         private PostgreSqlContainer _container;
 
+        private static readonly Guid _fieldId = new("1E7AAE86-F1A9-4B39-85B1-778CACD5732E");
+        private static readonly Guid _contactId = new("BE20E86E-D5B3-4BD6-A5A9-1B705D1FC88C");
+        private static readonly Guid _pitchAId = new("A3C1D2E4-F5B6-7890-AB12-CD34EF567890");
+        private static readonly Guid _pitchBId = new("B4D2E3F5-A6C7-8901-BC23-DE45FA678901");
+
         [TestInitialize]
         public async Task Initialize()
         {
-            IConfigurationRoot configRoot = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json")
-                .Build();
-
-            ServiceCollection services = new ServiceCollection();
-            services.AddLogging();
-            services.AddSingleton<BookingController>();
-
-            DbContextOptionsBuilder builder = new DbContextOptionsBuilder();
-
-            string connectionString = "Server=localhost;Port=54321;database=BookingDb;uid=bookaneer;pwd=***REMOVED***;";
-            var options = builder.UseNpgsql(connectionString).Options;
-
-            services.AddSingleton(options);
-            services.AddSingleton<BookingApiDbContext>();
-            services.AddSingleton<IBookingRepository, BookingRepository>();
-            services.AddSingleton<IBookingManager, BookingManager>();
-
-
-            _serviceProvider = services.BuildServiceProvider();
-
             _container = new PostgreSqlBuilder()
                 .WithDatabase("BookingDb")
                 .WithUsername("bookaneer")
                 .WithPassword("***REMOVED***")
-                .WithPortBinding(54321, 5432)
                 .Build();
 
             await _container.StartAsync();
 
-            await MigrateDatabase(_serviceProvider);
+            var options = new DbContextOptionsBuilder()
+                .UseNpgsql(_container.GetConnectionString())
+                .Options;
+
+            ServiceCollection services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton(options);
+            services.AddSingleton<BookingApiDbContext>();
+            services.AddSingleton<IBookingGateway, BookingGateway>();
+            services.AddSingleton<IFieldGateway, FieldGateway>();
+            services.AddSingleton<IBookingManager, BookingManager>();
+            services.AddSingleton<BookingController>();
+
+            _serviceProvider = services.BuildServiceProvider();
+
+            await MigrateDatabaseAsync();
         }
 
         [TestCleanup]
-        public Task Cleanup()
+        public Task Cleanup() => _container.StopAsync();
+
+        private async Task MigrateDatabaseAsync()
         {
-            return _container.StopAsync();
-        }
+            var dbContext = _serviceProvider.GetRequiredService<BookingApiDbContext>();
 
-        private async Task MigrateDatabase(IServiceProvider serviceProvider)
-        {
-            // update db to latest migration
-            try
+            await dbContext.Database.MigrateAsync();
+
+            dbContext.Fields.Add(new FieldDb
             {
-                var dbContext = serviceProvider.GetService<BookingApiDbContext>();
-
-                await dbContext.Database.MigrateAsync();
-
-                dbContext.Fields.Add(new Infrastructure.DbEntities.FieldDb
-                {
-                    Id = _fieldId,
-                    Name = "Field 1"
-                });
-                dbContext.Contacts.Add(new Infrastructure.DbEntities.ContactDb
-                {
-                    Id = _contactId,
-                    FirstName = "Jirka",
-                    LastName = "Sirka",
-                    Email = "jpecman@gmail.com",
-                    Phone = "776216469"
-                });
-
-                await dbContext.SaveChangesAsync();
-            }
-            catch (Exception ex)
+                Id = _fieldId,
+                Name = "Field 1",
+                Pitches =
+                [
+                    new PitchDb { Id = _pitchAId, Name = "Pitch A", FieldId = _fieldId },
+                    new PitchDb { Id = _pitchBId, Name = "Pitch B", FieldId = _fieldId },
+                ]
+            });
+            dbContext.Contacts.Add(new ContactDb
             {
-                Console.WriteLine(ex);
-            }
-        }
+                Id = _contactId,
+                FirstName = "Jirka",
+                LastName = "Sirka",
+                Email = "jpecman@gmail.com",
+                Phone = "776216469"
+            });
 
-        private static readonly Guid _fieldId = new("1E7AAE86-F1A9-4B39-85B1-778CACD5732E");
-        private static readonly Guid _contactId = new("BE20E86E-D5B3-4BD6-A5A9-1B705D1FC88C");
+            await dbContext.SaveChangesAsync();
+        }
 
         [TestMethod]
-        public async Task BasicTestAsync()
+        public async Task CreateBooking_ReturnsBookingAndCanBeRetrieved()
         {
-            var bookingController = _serviceProvider.GetRequiredService<BookingController>();
+            var controller = _serviceProvider.GetRequiredService<BookingController>();
 
-            var request = new BookingRequest("Test", DateTime.Now.Date.AddHours(10), (int) BookingDurationType.OneAndHalfHour, 1000, true, _contactId, _fieldId);
+            var request = new BookingRequest("Test", DateTime.Now.Date.AddHours(10), (int)BookingDurationType.OneAndHalfHour, 1000, true, _contactId, _fieldId);
 
-            var bookingResponse = await bookingController.PostAsync(request);
+            var createResult = await controller.PostAsync(request);
+            var created = createResult.Result as OkObjectResult;
 
-            var okObject = bookingResponse.Result as OkObjectResult;
+            Assert.IsNotNull(created);
+            Assert.IsNotNull(created.Value);
 
-            Assert.IsNotNull(okObject);
-            Assert.IsNotNull(okObject.Value);
+            var id = ((BookingResponse)created.Value).Id;
+            var getResult = await controller.GetAsync(id);
+            var fetched = getResult.Result as OkObjectResult;
 
-            var getSaved = await bookingController.GetAsync(Guid.Parse(okObject.Value.ToString()));
+            Assert.IsNotNull(fetched);
+            Assert.IsNotNull(fetched.Value);
+        }
 
-            okObject = getSaved.Result as OkObjectResult;
+        [TestMethod]
+        public async Task CreateBooking_DuplicateOverlappingSlot_IsRejected()
+        {
+            var controller = _serviceProvider.GetRequiredService<BookingController>();
 
-            Assert.IsNotNull(okObject);
-            Assert.IsNotNull(okObject.Value);
+            var request = new BookingRequest("First", DateTime.Now.Date.AddHours(10), (int)BookingDurationType.OneAndHalfHour, 1000, true, _contactId, _fieldId);
+
+            var firstResult = await controller.PostAsync(request);
+            Assert.IsInstanceOfType(firstResult.Result, typeof(OkObjectResult));
+
+            var duplicate = new BookingRequest("Duplicate", DateTime.Now.Date.AddHours(10), (int)BookingDurationType.OneAndHalfHour, 1000, true, _contactId, _fieldId);
+
+            var secondResult = await controller.PostAsync(duplicate);
+            Assert.IsNotInstanceOfType(secondResult.Result, typeof(OkObjectResult));
         }
     }
 }

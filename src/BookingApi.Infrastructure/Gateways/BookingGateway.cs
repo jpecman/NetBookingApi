@@ -1,7 +1,6 @@
 using BookingApi.Common.Messaging;
-using BookingApi.Domain;
 using BookingApi.Domain.Entities;
-using BookingApi.Domain.Repositories;
+using BookingApi.Domain.Gateways;
 using BookingApi.Domain.Search;
 using BookingApi.Infrastructure.DbEntities;
 
@@ -10,23 +9,18 @@ using LanguageExt;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 using static LanguageExt.Prelude;
 
-namespace BookingApi.Infrastructure.Repositories
+namespace BookingApi.Infrastructure.Gateways
 {
-    public class BookingRepository : Repository, IBookingRepository
+    public class BookingGateway : Gateway, IBookingGateway
     {
         private readonly BookingApiDbContext _dbContext;
-        private readonly ILogger<BookingRepository> _logger;
+        private readonly ILogger<BookingGateway> _logger;
 
-        public BookingRepository(BookingApiDbContext dbContext, ILogger<BookingRepository> logger)
+        public BookingGateway(BookingApiDbContext dbContext, ILogger<BookingGateway> logger)
         {
             _dbContext = dbContext;
             _logger = logger;
@@ -51,9 +45,9 @@ namespace BookingApi.Infrastructure.Repositories
         {
             try
             {
-                var slots = await _dbContext.Slots.Include(s => s.Booking).ThenInclude(b => b.Contact).Include(s => s.Pitch).
-                    Where(s => s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime()
-                            && s.Duration.UpperBound.ToUniversalTime() <= search.To.ToUniversalTime()).ToListAsync();
+                var slots = await _dbContext.Slots.Include(s => s.Booking).ThenInclude(b => b.Contact).Include(s => s.Pitch)
+                    .Where(s => s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime()
+                             && s.Duration.UpperBound.ToUniversalTime() <= search.To.ToUniversalTime()).ToListAsync();
 
                 var bookings = slots.Select(s => s.Booking).DistinctBy(b => b.Id);
 

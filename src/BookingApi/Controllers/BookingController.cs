@@ -6,16 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
-public class BookingController : BaseApiController
+public class BookingController(ILogger<BookingController> logger, IBookingManager bookingManager) : BaseApiController(logger)
 {
-    private readonly ILogger<BookingController> _logger;
-    private readonly IBookingManager _bookingManager;
-
-    public BookingController(ILogger<BookingController> logger, IBookingManager bookingManager)
-    {
-        _logger = logger;
-        _bookingManager = bookingManager;
-    }
+    private readonly IBookingManager _bookingManager = bookingManager;
 
     [HttpPost("simple")]
     public async Task<ActionResult<BookingResponse>> PostAsync([FromBody] BookingRequest booking)

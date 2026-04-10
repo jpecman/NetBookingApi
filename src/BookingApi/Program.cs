@@ -1,10 +1,11 @@
 using System.Text;
 
 using BookingApi.Domain;
-using BookingApi.Domain.Repositories;
+using BookingApi.Domain.Gateways;
 using BookingApi.Domain.Services.LoginService;
 using BookingApi.Infrastructure;
-using BookingApi.Infrastructure.Repositories;
+using BookingApi.Infrastructure.DbEntities;
+using BookingApi.Infrastructure.Gateways;
 using BookingApi.Infrastructure.Services.LoginService;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -63,14 +64,15 @@ public class Program
         builder.Services.AddDbContext<BookingApiDbContext>(options => options.UseNpgsql(connectionString));
 
         builder.Services.AddScoped<IBookingManager, BookingManager>();
-        builder.Services.AddScoped<IBookingRepository, BookingRepository>();
-        builder.Services.AddScoped<IContactRepository, ContactRepository>();
-        builder.Services.AddScoped<IFieldRepository, FieldRepository>();
-        builder.Services.AddScoped<ISlotRepository, SlotRepository>();
+        builder.Services.AddScoped<IBookingGateway, BookingGateway>();
+        builder.Services.AddScoped<IFieldGateway, FieldGateway>();
+        builder.Services.AddScoped<ISlotGateway, SlotGateway>();
+        builder.Services.AddScoped<IContactGateway, ContactGateway>();
+        builder.Services.AddScoped<IUserGateway, UserGateway>();
+        builder.Services.AddScoped<IRoleGateway, RoleGateway>();
         builder.Services.AddScoped<ILoginService, LoginService>();
 
         builder.Services.AddSingleton(new LoginServiceOptions() { SigningKey = signingKey });
-        builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
         var app = builder.Build();
 
@@ -97,6 +99,7 @@ app.UseHttpsRedirection();
 
         await MigrateDatabaseAsync(scope);
         await EnsureRolesAndAdminAccountAsync(scope, configuration);
+        await SeedDataAsync(scope);
 
         app.Run();
     }
@@ -142,6 +145,29 @@ app.UseHttpsRedirection();
             logger.LogError(ex, "Failed to add user jpecman@gmail.com to Administrators");
         }
 
+    }
+
+    private static async Task SeedDataAsync(IServiceScope scope)
+    {
+        var db = scope.ServiceProvider.GetRequiredService<BookingApiDbContext>();
+
+        if (await db.Fields.AnyAsync())
+        {
+            return;
+        }
+
+        db.Fields.Add(new FieldDb
+        {
+            Id = Guid.NewGuid(),
+            Name = "Main Field",
+            Pitches =
+            [
+                new PitchDb { Id = Guid.NewGuid(), Name = "Pitch A" },
+                new PitchDb { Id = Guid.NewGuid(), Name = "Pitch B" },
+            ]
+        });
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task CreateRoleIfNeededAsync(ILogger logger, RoleManager<IdentityRole> roleManager, string roleName)

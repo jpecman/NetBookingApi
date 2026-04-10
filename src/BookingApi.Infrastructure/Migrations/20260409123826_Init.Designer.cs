@@ -13,15 +13,15 @@ using NpgsqlTypes;
 namespace BookingApi.Infrastructure.Migrations
 {
     [DbContext(typeof(BookingApiDbContext))]
-    [Migration("20240208162838_AddedIdentity")]
-    partial class AddedIdentity
+    [Migration("20260409123826_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.1")
+                .HasAnnotation("ProductVersion", "10.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -170,6 +170,26 @@ namespace BookingApi.Infrastructure.Migrations
                     b.ToTable("Fields");
                 });
 
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.PitchDb", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FieldId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldId");
+
+                    b.ToTable("PitchDb");
+                });
+
             modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.SlotDb", b =>
                 {
                     b.Property<Guid>("Id")
@@ -182,12 +202,12 @@ namespace BookingApi.Infrastructure.Migrations
                     b.Property<NpgsqlRange<DateTime>>("Duration")
                         .HasColumnType("tstzrange");
 
-                    b.Property<Guid>("FieldId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("PitchId")
+                        .HasColumnType("uuid");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
@@ -202,7 +222,7 @@ namespace BookingApi.Infrastructure.Migrations
 
                     b.HasIndex("BookingId");
 
-                    b.HasIndex("FieldId");
+                    b.HasIndex("PitchId");
 
                     b.ToTable("Slots");
                 });
@@ -350,6 +370,17 @@ namespace BookingApi.Infrastructure.Migrations
                     b.Navigation("Contact");
                 });
 
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.PitchDb", b =>
+                {
+                    b.HasOne("BookingApi.Infrastructure.DbEntities.FieldDb", "Field")
+                        .WithMany("Pitches")
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Field");
+                });
+
             modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.SlotDb", b =>
                 {
                     b.HasOne("BookingApi.Infrastructure.DbEntities.BookingDb", "Booking")
@@ -358,15 +389,15 @@ namespace BookingApi.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("BookingApi.Infrastructure.DbEntities.FieldDb", "Field")
-                        .WithMany()
-                        .HasForeignKey("FieldId")
+                    b.HasOne("BookingApi.Infrastructure.DbEntities.PitchDb", "Pitch")
+                        .WithMany("Slots")
+                        .HasForeignKey("PitchId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Booking");
 
-                    b.Navigation("Field");
+                    b.Navigation("Pitch");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -421,6 +452,16 @@ namespace BookingApi.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.BookingDb", b =>
+                {
+                    b.Navigation("Slots");
+                });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.FieldDb", b =>
+                {
+                    b.Navigation("Pitches");
+                });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.PitchDb", b =>
                 {
                     b.Navigation("Slots");
                 });

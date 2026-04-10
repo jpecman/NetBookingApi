@@ -7,20 +7,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers
 {
-    public class UserController : BaseApiController
+    public class AuthController(ILoginService loginService, ILogger<AuthController> logger) : BaseApiController(logger)
     {
-        private readonly ILoginService _loginService;
-
-        public UserController(ILoginService loginService)
-        {
-            _loginService = loginService;
-        }
-
         [HttpPut("login")]
         [AllowAnonymous]
         public async Task<ActionResult<UserLoginResponse>> LoginAsync([FromBody] UserLoginRequest request)
         {
-            var result = await _loginService.LoginAsync(request.ToDomain());
+            var result = await loginService.LoginAsync(request.ToDomain());
 
             return result.Match<ActionResult>(
                 success => Ok(new UserLoginResponse(success.Token)),
