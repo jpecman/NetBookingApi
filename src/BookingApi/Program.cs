@@ -69,7 +69,6 @@ public class Program
         builder.Services.AddScoped<ISlotGateway, SlotGateway>();
         builder.Services.AddScoped<IContactGateway, ContactGateway>();
         builder.Services.AddScoped<IUserGateway, UserGateway>();
-        builder.Services.AddScoped<IRoleGateway, RoleGateway>();
         builder.Services.AddScoped<ILoginService, LoginService>();
 
         builder.Services.AddSingleton(new LoginServiceOptions() { SigningKey = signingKey });

@@ -11,14 +11,15 @@ using static LanguageExt.Prelude;
 
 namespace BookingApi.Infrastructure.Gateways;
 
-public class UserGateway(UserManager<ApplicationUser> userManager) : Gateway, IUserGateway
+// DbContext is used directly for read queries because the Identity API (UserManager, RoleManager)
+// only supports single-entity operations, which leads to N+1 queries when loading users with roles.
+public class UserGateway(UserManager<ApplicationUser> userManager, BookingApiDbContext dbContext) : Gateway, IUserGateway
 {
     public async Task<Either<Error, User[]>> GetAllAsync()
     {
         try
         {
-            var users = await userManager.Users.ToListAsync();
-            return Right(users.Select(ToDomain).ToArray());
+            return Right(await QueryUsersAsync(dbContext.Users));
         }
         catch (Exception ex)
         {
@@ -30,14 +31,14 @@ public class UserGateway(UserManager<ApplicationUser> userManager) : Gateway, IU
     {
         try
         {
-            var user = await userManager.FindByIdAsync(id);
+            var user = (await QueryUsersAsync(dbContext.Users.Where(u => u.Id == id))).FirstOrDefault();
 
             if (user is null)
             {
                 return Left(new Error(ErrorType.NotFound, $"User {id} not found."));
             }
 
-            return Right(ToDomain(user));
+            return Right(user);
         }
         catch (Exception ex)
         {
@@ -58,7 +59,7 @@ public class UserGateway(UserManager<ApplicationUser> userManager) : Gateway, IU
                 return Left(new Error(ErrorType.Invalid, message));
             }
 
-            return Right(ToDomain(user));
+            return Right(new User(user.Id, user.UserName ?? string.Empty, user.Email ?? string.Empty, []));
         }
         catch (Exception ex)
         {
@@ -140,6 +141,24 @@ public class UserGateway(UserManager<ApplicationUser> userManager) : Gateway, IU
         }
     }
 
+    private async Task<User[]> QueryUsersAsync(IQueryable<ApplicationUser> query)
+    {
+        var data = await query
+            .Select(u => new
+            {
+                u.Id,
+                u.UserName,
+                u.Email,
+                Roles = dbContext.UserRoles
+                    .Where(ur => ur.UserId == u.Id)
+                    .Join(dbContext.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                    .ToArray()
+            })
+            .ToListAsync();
+
+        return data.Select(u => new User(u.Id, u.UserName ?? string.Empty, u.Email ?? string.Empty, u.Roles)).ToArray();
+    }
+
     public async Task<Either<Error, bool>> RemoveFromRoleAsync(string userId, string roleName)
     {
         try
@@ -166,7 +185,4 @@ public class UserGateway(UserManager<ApplicationUser> userManager) : Gateway, IU
             return CreateErrorResponse<bool>(ex, ErrorType.General);
         }
     }
-
-    private static User ToDomain(ApplicationUser user) =>
-        new(user.Id, user.UserName ?? string.Empty, user.Email ?? string.Empty);
 }

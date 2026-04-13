@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/BookingApi/bin/Debug/net6.0/BookingApi.dll",
+            "program": "${workspaceFolder}/BookingApi/bin/Debug/net10.0/BookingApi.dll",
             "args": [],
             "cwd": "${workspaceFolder}/BookingApi",
             "stopAtEntry": false,
