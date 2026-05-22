@@ -1,5 +1,5 @@
 
-using BookingApi.Domain;
+using BookingApi.Application;
 using BookingApi.Models.Bookings;
 using LanguageExt;
 using Microsoft.AspNetCore.Mvc;

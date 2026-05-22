@@ -1,4 +1,4 @@
-using BookingApi.Domain.Services.LoginService;
+using BookingApi.Application.Services.LoginService;
 
 namespace BookingApi.Models.Users
 {

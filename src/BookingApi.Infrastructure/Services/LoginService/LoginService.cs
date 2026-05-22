@@ -6,7 +6,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-using BookingApi.Domain.Services.LoginService;
+using BookingApi.Application.Services.LoginService;
 
 using LanguageExt;
 
@@ -38,7 +38,9 @@ namespace BookingApi.Infrastructure.Services.LoginService
             _userManager = userManager;
         }
 
-        public async Task<Either<LoginError, LoginResponseModel>> LoginAsync(LoginRequestModel request)
+        public async Task<Either<LoginError, LoginResponseModel>> LoginAsync(
+            LoginRequestModel request
+        )
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
 
@@ -47,11 +49,17 @@ namespace BookingApi.Infrastructure.Services.LoginService
                 return Left(LoginError.UserNotFound);
             }
 
-            var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, true);
+            var result = await _signInManager.CheckPasswordSignInAsync(
+                user,
+                request.Password,
+                true
+            );
             if (result.Succeeded)
             {
                 var roles = await _userManager.GetRolesAsync(user);
-                return Right(new LoginResponseModel(IssueToken(user, roles)));
+                return Right(
+                    new LoginResponseModel(IssueToken(user, roles), user.Email, user.UserName)
+                );
             }
 
             return Left(LoginError.UserLockedOut);
@@ -72,7 +80,10 @@ namespace BookingApi.Infrastructure.Services.LoginService
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_options.SigningKey));
-            var signingCredentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256Signature);
+            var signingCredentials = new SigningCredentials(
+                signingKey,
+                SecurityAlgorithms.HmacSha256Signature
+            );
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {

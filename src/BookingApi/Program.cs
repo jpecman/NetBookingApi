@@ -1,8 +1,8 @@
 using System.Text;
 
-using BookingApi.Domain;
+using BookingApi.Application;
+using BookingApi.Application.Services.LoginService;
 using BookingApi.Domain.Gateways;
-using BookingApi.Domain.Services.LoginService;
 using BookingApi.Infrastructure;
 using BookingApi.Infrastructure.DbEntities;
 using BookingApi.Infrastructure.Gateways;
@@ -51,6 +51,15 @@ public class Program
                     ValidateAudience = false,
                     ValidateLifetime = true,
                 };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        context.Token = context.Request.Cookies["token"];
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -83,9 +92,10 @@ public class Program
         }
 
         app.UseCors(options => options
-            .AllowAnyOrigin()
+            .WithOrigins("http://localhost:5173")
             .AllowAnyMethod()
-            .AllowAnyHeader());
+            .AllowAnyHeader()
+            .AllowCredentials());
 
 #if !DEBUG
 app.UseHttpsRedirection();

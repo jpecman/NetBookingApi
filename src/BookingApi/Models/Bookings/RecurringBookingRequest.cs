@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-using BookingApi.Domain.Commands;
+using BookingApi.Application.Commands;
 using BookingApi.Domain.Entities;
 using BookingApi.Models.Contacts;
 using BookingApi.Models.Fields;

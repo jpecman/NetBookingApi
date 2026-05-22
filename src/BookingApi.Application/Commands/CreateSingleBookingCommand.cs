@@ -1,9 +1,9 @@
-namespace BookingApi.Domain.Commands;
+namespace BookingApi.Application.Commands;
 
 public record CreateSingleBookingCommand(
     string Name,
     DateTime From,
-    BookingDurationType Duration, // e.g., OneHour, TwoHours
+    BookingDurationType Duration,
     decimal Price,
     bool IsWholeField,
     Guid ContactId,

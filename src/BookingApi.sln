@@ -15,6 +15,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BookingApi.Common", "Bookin
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BookingApi.Utils", "BookingApi.Utils\BookingApi.Utils.csproj", "{4F6970D8-3E92-4D60-BE54-04EF8CEA0810}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookingApi.Application", "BookingApi.Application\BookingApi.Application.csproj", "{79441449-3C98-4383-B49B-6C1EC7E8D2CE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{4F6970D8-3E92-4D60-BE54-04EF8CEA0810}.Release|x64.Build.0 = Release|Any CPU
 		{4F6970D8-3E92-4D60-BE54-04EF8CEA0810}.Release|x86.ActiveCfg = Release|Any CPU
 		{4F6970D8-3E92-4D60-BE54-04EF8CEA0810}.Release|x86.Build.0 = Release|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Debug|x64.Build.0 = Debug|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Debug|x86.Build.0 = Debug|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Release|x64.ActiveCfg = Release|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Release|x64.Build.0 = Release|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Release|x86.ActiveCfg = Release|Any CPU
+		{79441449-3C98-4383-B49B-6C1EC7E8D2CE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

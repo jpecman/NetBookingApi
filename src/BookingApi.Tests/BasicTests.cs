@@ -1,6 +1,6 @@
 using BookingApi.Controllers;
-using BookingApi.Domain;
-using BookingApi.Domain.Commands;
+using BookingApi.Application;
+using BookingApi.Application.Commands;
 using BookingApi.Domain.Gateways;
 using BookingApi.Infrastructure;
 using BookingApi.Infrastructure.DbEntities;
