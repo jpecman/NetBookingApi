@@ -15,6 +15,7 @@ namespace BookingApi.Infrastructure.DbEntities
         public string LastName { get; set; }
         public string Email { get; set; }
         public string Phone { get; set; }
+        public bool Show { get; set; }
 
         [Timestamp]
         public uint Version { get; set; }
@@ -30,7 +31,8 @@ namespace BookingApi.Infrastructure.DbEntities
                 entity.FirstName,
                 entity.LastName,
                 entity.Email,
-                entity.Phone
+                entity.Phone,
+                entity.Show
             );
         }
 
@@ -43,6 +45,7 @@ namespace BookingApi.Infrastructure.DbEntities
                 LastName = domain.LastName,
                 Email = domain.Email,
                 Phone = domain.Phone,
+                Show = domain.Show,
             };
         }
     }
