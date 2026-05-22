@@ -1,3 +1,5 @@
+using System.Security.Claims;
+
 using BookingApi.Common.Messaging;
 using BookingApi.Application.Services.LoginService;
 using BookingApi.Models.Users;
@@ -10,6 +12,19 @@ namespace BookingApi.Controllers
     public class AuthController(ILoginService loginService, ILogger<AuthController> logger)
         : BaseApiController(logger)
     {
+        [HttpGet("me")]
+        public ActionResult<UserMeResponse> Me()
+        {
+            var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value);
+
+            if (id is null || email is null)
+                return Unauthorized();
+
+            return Ok(new UserMeResponse(id, email, roles));
+        }
+
         [HttpPut("login")]
         [AllowAnonymous]
         public async Task<ActionResult<UserLoginResponse>> LoginAsync(
