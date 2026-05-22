@@ -121,12 +121,6 @@ namespace BookingApi.Infrastructure.Gateways
                 }
 
                 dbEntity.Name = entity.Name;
-                dbEntity.Pitches.Clear();
-                foreach (var pitch in entity.Pitches)
-                {
-                    dbEntity.Pitches.Add(new PitchDb { Id = Guid.NewGuid(), Name = pitch.Name, FieldId = entity.Id });
-                }
-
                 await _dbContext.SaveChangesAsync();
 
                 return Right(dbEntity.ToDomain());

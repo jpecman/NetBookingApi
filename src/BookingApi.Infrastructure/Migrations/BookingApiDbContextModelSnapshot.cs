@@ -187,7 +187,7 @@ namespace BookingApi.Infrastructure.Migrations
 
                     b.HasIndex("FieldId");
 
-                    b.ToTable("PitchDb");
+                    b.ToTable("Pitches");
                 });
 
             modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.SlotDb", b =>

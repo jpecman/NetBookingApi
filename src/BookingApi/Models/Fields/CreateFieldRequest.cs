@@ -18,17 +18,11 @@ namespace BookingApi.Models.Fields
         }
     }
 
-    public record UpdateFieldRequest(string Name, IReadOnlyList<string> Pitches);
+    public record UpdateFieldRequest(string Name);
 
     public static class UpdateFieldRequestExtensions
     {
-        public static Field ToDomain(this UpdateFieldRequest request, Guid id)
-        {
-            var pitches = request.Pitches
-                .Select(name => new Pitch(Guid.Empty, name, id, ImmutableArray<Slot>.Empty))
-                .ToImmutableArray();
-
-            return new Field(id, request.Name, pitches);
-        }
+        public static Field ToDomain(this UpdateFieldRequest request, Guid id) =>
+            new(id, request.Name, []);
     }
 }
