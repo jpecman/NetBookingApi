@@ -56,6 +56,7 @@ public class ContactGateway(BookingApiDbContext db) : Gateway, IContactGateway
             entity.LastName = contact.LastName;
             entity.Email = contact.Email;
             entity.Phone = contact.Phone;
+            entity.Show = contact.Show;
 
             await db.SaveChangesAsync();
 
@@ -98,6 +99,7 @@ public class ContactGateway(BookingApiDbContext db) : Gateway, IContactGateway
                 LastName = contact.LastName,
                 Email = contact.Email,
                 Phone = contact.Phone,
+                Show = contact.Show,
             };
 
             db.Contacts.Add(entity);
