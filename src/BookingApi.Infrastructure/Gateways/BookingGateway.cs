@@ -35,7 +35,13 @@ namespace BookingApi.Infrastructure.Gateways
                 var entry = _dbContext.Bookings.Add(dbEntity);
                 await _dbContext.SaveChangesAsync();
 
-                return entry.Entity.ToDomain();
+                var saved = await _dbContext.Bookings
+                    .Include(b => b.Contact)
+                    .Include(b => b.Slots)
+                    .ThenInclude(s => s.Pitch)
+                    .FirstAsync(b => b.Id == entry.Entity.Id);
+
+                return saved.ToDomain();
             };
 
             return await Execute(func, booking);
@@ -45,9 +51,17 @@ namespace BookingApi.Infrastructure.Gateways
         {
             try
             {
-                var slots = await _dbContext.Slots.Include(s => s.Booking).ThenInclude(b => b.Contact).Include(s => s.Pitch)
-                    .Where(s => s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime()
-                             && s.Duration.UpperBound.ToUniversalTime() <= search.To.ToUniversalTime()).ToListAsync();
+                var slots = await _dbContext.Slots
+                    .Include(s => s.Booking)
+                    .ThenInclude(b => b.Contact)
+                    .Include(s => s.Pitch)
+                    .Where(
+                        s =>
+                            s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime()
+                            && s.Duration.UpperBound.ToUniversalTime()
+                                <= search.To.ToUniversalTime()
+                    )
+                    .ToListAsync();
 
                 var bookings = slots.Select(s => s.Booking).DistinctBy(b => b.Id);
 
@@ -63,7 +77,11 @@ namespace BookingApi.Infrastructure.Gateways
         {
             Func<Guid, Task<Booking>> func = async bId =>
             {
-                var entity = await _dbContext.Bookings.Include(b => b.Contact).Include(b => b.Slots).ThenInclude(s => s.Pitch).FirstAsync(x => x.Id == bId);
+                var entity = await _dbContext.Bookings
+                    .Include(b => b.Contact)
+                    .Include(b => b.Slots)
+                    .ThenInclude(s => s.Pitch)
+                    .FirstAsync(x => x.Id == bId);
 
                 return entity.ToDomain();
             };

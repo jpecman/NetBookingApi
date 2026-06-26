@@ -70,7 +70,13 @@ public class Program
 
         string connectionString = configuration["CONNECTION_STRING"];
 
-        builder.Services.AddDbContext<BookingApiDbContext>(options => options.UseNpgsql(connectionString));
+        builder.Services.AddDbContext<BookingApiDbContext>(options =>
+        {
+            options.UseNpgsql(connectionString);
+            
+            if (builder.Environment.IsDevelopment())
+                options.EnableSensitiveDataLogging();
+        });
 
         builder.Services.AddScoped<IBookingManager, BookingManager>();
         builder.Services.AddScoped<IBookingGateway, BookingGateway>();
