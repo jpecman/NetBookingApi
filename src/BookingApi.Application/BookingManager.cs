@@ -20,6 +20,8 @@ public interface IBookingManager
     Task<Either<Error, Booking>> GetAsync(Guid id);
 
     Task<Either<Error, Booking[]>> GetAsync(BookingSearch search);
+
+    Task<Either<Error, Unit>> CancelBookingAsync(Guid id, string? cancellationReason);
 }
 
 public class BookingManager : IBookingManager
@@ -109,6 +111,11 @@ public class BookingManager : IBookingManager
         );
     }
 
+    public Task<Either<Error, Unit>> CancelBookingAsync(Guid id, string? cancellationReason)
+    {
+        return _bookingGateway.CancelAsync(id, cancellationReason);
+    }
+
     public Task<Either<Error, Booking>> GetAsync(Guid id)
     {
         return _bookingGateway.GetAsync(id);
@@ -118,11 +125,8 @@ public class BookingManager : IBookingManager
     {
         var response = await _bookingGateway.GetAsync(search);
 
-        return await response.MatchAsync<Either<Error, Booking[]>>(
-            async bookings =>
-            {
-                return bookings.ToArray();
-            },
+        return response.Match<Either<Error, Booking[]>>(
+            bookings => bookings.ToArray(),
             error => error
         );
     }

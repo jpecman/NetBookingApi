@@ -23,6 +23,27 @@ public class SlotGateway : Gateway, ISlotGateway
         _dbContext = dbContext;
     }
 
+    public async Task<Either<Error, Unit>> CancelAsync(Guid slotId, string? cancellationReason)
+    {
+        try
+        {
+            var slot = await _dbContext.Slots.FindAsync(slotId);
+
+            if (slot is null)
+                return Left(new Error(ErrorType.NotFound, $"Slot {slotId} not found"));
+
+            slot.Status = SlotStatus.Cancelled;
+            slot.CancellationReason = cancellationReason;
+
+            await _dbContext.SaveChangesAsync();
+            return Right(Unit.Default);
+        }
+        catch (Exception ex)
+        {
+            return CreateErrorResponse<Unit>(ex, ErrorType.General);
+        }
+    }
+
     public async Task<Either<Error, ImmutableArray<Slot>>> GetAsync(SlotSearch search)
     {
         try

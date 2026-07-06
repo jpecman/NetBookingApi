@@ -28,6 +28,16 @@ public class BookingController(ILogger<BookingController> logger, IBookingManage
         return HandleResponse(createResponse, x => x.ToResponse());
     }
 
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteAsync(
+        [FromRoute] Guid id,
+        [FromBody] CancelRequest? request = null
+    )
+    {
+        var result = await _bookingManager.CancelBookingAsync(id, request?.CancellationReason);
+        return result.Match<ActionResult>(_ => NoContent(), HandleError);
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<BookingResponse>> GetAsync([FromRoute] Guid id)
     {

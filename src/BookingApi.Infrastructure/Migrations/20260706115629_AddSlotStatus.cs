@@ -14,26 +14,24 @@ namespace BookingApi.Infrastructure.Migrations
                 name: "CancellationReason",
                 table: "Slots",
                 type: "text",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<int>(
                 name: "Status",
                 table: "Slots",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 0
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "CancellationReason",
-                table: "Slots");
+            migrationBuilder.DropColumn(name: "CancellationReason", table: "Slots");
 
-            migrationBuilder.DropColumn(
-                name: "Status",
-                table: "Slots");
+            migrationBuilder.DropColumn(name: "Status", table: "Slots");
         }
     }
 }

@@ -73,6 +73,30 @@ namespace BookingApi.Infrastructure.Gateways
             }
         }
 
+        public async Task<Either<Error, Unit>> CancelAsync(Guid bookingId, string? cancellationReason)
+        {
+            try
+            {
+                var slots = await _dbContext.Slots.Where(s => s.BookingId == bookingId).ToListAsync();
+
+                if (!slots.Any())
+                    return Left(new Error(ErrorType.NotFound, $"Booking {bookingId} not found"));
+
+                foreach (var slot in slots)
+                {
+                    slot.Status = SlotStatus.Cancelled;
+                    slot.CancellationReason = cancellationReason;
+                }
+
+                await _dbContext.SaveChangesAsync();
+                return Right(Unit.Default);
+            }
+            catch (Exception ex)
+            {
+                return CreateErrorResponse<Unit>(ex, ErrorType.General);
+            }
+        }
+
         public async Task<Either<Error, Booking>> GetAsync(Guid id)
         {
             Func<Guid, Task<Booking>> func = async bId =>

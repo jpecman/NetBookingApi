@@ -1,12 +1,14 @@
 using BookingApi.Domain.Gateways;
 using BookingApi.Domain.Search;
+using BookingApi.Models.Bookings;
 using BookingApi.Models.Slots;
 
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
-public class SlotController(ISlotGateway slotGateway, ILogger<SlotController> logger) : BaseApiController(logger)
+public class SlotController(ISlotGateway slotGateway, ILogger<SlotController> logger)
+    : BaseApiController(logger)
 {
     [HttpGet]
     public async Task<ActionResult<SlotResponse[]>> GetAsync([FromQuery] DateTime from, DateTime to)
@@ -14,5 +16,15 @@ public class SlotController(ISlotGateway slotGateway, ILogger<SlotController> lo
         var result = await slotGateway.GetAsync(new SlotSearch(from, to));
 
         return HandleResponse(result, slots => slots.Select(s => s.ToResponse()).ToArray());
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteAsync(
+        [FromRoute] Guid id,
+        [FromBody] CancelRequest? request = null
+    )
+    {
+        var result = await slotGateway.CancelAsync(id, request?.CancellationReason);
+        return result.Match<ActionResult>(_ => NoContent(), HandleError);
     }
 }

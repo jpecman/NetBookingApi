@@ -11,4 +11,6 @@ namespace BookingApi.Domain.Gateways;
 public interface ISlotGateway
 {
     Task<Either<Error, ImmutableArray<Slot>>> GetAsync(SlotSearch search);
+
+    Task<Either<Error, Unit>> CancelAsync(Guid slotId, string? cancellationReason);
 }

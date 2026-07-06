@@ -14,5 +14,7 @@ namespace BookingApi.Domain.Gateways
         Task<Either<Error, ImmutableArray<Booking>>> GetAsync(BookingSearch search);
 
         Task<Either<Error, Booking>> CreateAsync(Booking booking);
+
+        Task<Either<Error, Unit>> CancelAsync(Guid bookingId, string? cancellationReason);
     }
 }
