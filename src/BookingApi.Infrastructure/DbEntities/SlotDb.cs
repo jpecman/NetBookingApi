@@ -32,6 +32,10 @@ namespace BookingApi.Infrastructure.DbEntities
         [ForeignKey(nameof(BookingId))]
         public BookingDb Booking { get; set; }
 
+        public SlotStatus Status { get; set; } = SlotStatus.Booked;
+
+        public string? CancellationReason { get; set; }
+
         [Timestamp]
         public uint Version { get; set; }
     }
@@ -47,7 +51,9 @@ namespace BookingApi.Infrastructure.DbEntities
                 entity.Duration.LowerBound,
                 entity.Duration.UpperBound,
                 entity.Price,
-                entity.PitchId
+                entity.PitchId,
+                entity.Status,
+                entity.CancellationReason
             );
         }
 
@@ -59,7 +65,9 @@ namespace BookingApi.Infrastructure.DbEntities
                 Name = domain.Name,
                 Duration = new NpgsqlRange<DateTime>(domain.From.ToUniversalTime(), domain.To.ToUniversalTime()),
                 Price = domain.Price,
-                PitchId = domain.PitchId
+                PitchId = domain.PitchId,
+                Status = domain.Status,
+                CancellationReason = domain.CancellationReason
             };
         }
     }

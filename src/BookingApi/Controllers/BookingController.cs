@@ -1,4 +1,3 @@
-
 using BookingApi.Application;
 using BookingApi.Models.Bookings;
 using LanguageExt;
@@ -6,7 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
-public class BookingController(ILogger<BookingController> logger, IBookingManager bookingManager) : BaseApiController(logger)
+public class BookingController(ILogger<BookingController> logger, IBookingManager bookingManager)
+    : BaseApiController(logger)
 {
     private readonly IBookingManager _bookingManager = bookingManager;
 
@@ -19,7 +19,9 @@ public class BookingController(ILogger<BookingController> logger, IBookingManage
     }
 
     [HttpPost("camp")]
-    public async Task<ActionResult<BookingResponse>> PostCampAsync([FromBody] CampBookingRequest request)
+    public async Task<ActionResult<BookingResponse>> PostCampAsync(
+        [FromBody] CampBookingRequest request
+    )
     {
         var createResponse = await _bookingManager.CreateCampAsync(request.ToDomain());
 
@@ -35,10 +37,15 @@ public class BookingController(ILogger<BookingController> logger, IBookingManage
     }
 
     [HttpGet]
-    public async Task<ActionResult<BookingResponse[]>> GetAsync([FromQuery] SearchBookingRequest search)
+    public async Task<ActionResult<BookingResponse[]>> GetAsync(
+        [FromQuery] SearchBookingRequest search
+    )
     {
         var getResponse = await _bookingManager.GetAsync(search.ToDomain());
 
-        return HandleResponse(getResponse, bookings => bookings.Select(b => b.ToResponse()).ToArray());
+        return HandleResponse(
+            getResponse,
+            bookings => bookings.Select(b => b.ToResponse()).ToArray()
+        );
     }
 }
