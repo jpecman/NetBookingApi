@@ -10,7 +10,7 @@ public class BookingController(ILogger<BookingController> logger, IBookingManage
 {
     private readonly IBookingManager _bookingManager = bookingManager;
 
-    [HttpPost("simple")]
+    [HttpPost]
     public async Task<ActionResult<BookingResponse>> PostAsync([FromBody] BookingRequest booking)
     {
         var createResponse = await _bookingManager.CreateAsync(booking.ToDomain());
@@ -18,12 +18,12 @@ public class BookingController(ILogger<BookingController> logger, IBookingManage
         return HandleResponse(createResponse, x => x.ToResponse());
     }
 
-    [HttpPost("recurring")]
-    public async Task<ActionResult<BookingResponse>> CreateRecurringBooking([FromBody] RecurringBookingRequest request)
+    [HttpPost("camp")]
+    public async Task<ActionResult<BookingResponse>> PostCampAsync([FromBody] CampBookingRequest request)
     {
-        var createResponse = await _bookingManager.CreateRecurringAsync(request.ToDomain());
+        var createResponse = await _bookingManager.CreateCampAsync(request.ToDomain());
 
-        return HandleResponse(createResponse, booking => booking);
+        return HandleResponse(createResponse, x => x.ToResponse());
     }
 
     [HttpGet("{id}")]

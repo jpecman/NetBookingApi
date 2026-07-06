@@ -15,7 +15,8 @@ public record BookingRequest(
     decimal Price,
     bool IsWholeField,
     Guid ContactId,
-    Guid FieldId
+    Guid FieldId,
+    DateTime? EndDate = null
 );
 
 public static class BookingRequestExtensions
@@ -25,11 +26,12 @@ public static class BookingRequestExtensions
         return new CreateSingleBookingCommand(
             request.Name,
             request.From,
-            (BookingDurationType)request.Duration, // TODO: Check this
+            (BookingDurationType)request.Duration,
             request.Price,
             request.IsWholeField,
             request.ContactId,
-            request.FieldId
+            request.FieldId,
+            request.EndDate
         );
     }
 }

@@ -15,7 +15,7 @@ public interface IBookingManager
 {
     Task<Either<Error, Booking>> CreateAsync(CreateSingleBookingCommand command);
 
-    Task<Either<Error, Booking>> CreateRecurringAsync(CreateRecurringBookingCommand booking);
+    Task<Either<Error, Booking>> CreateCampAsync(CreateCampBookingCommand command);
 
     Task<Either<Error, Booking>> GetAsync(Guid id);
 
@@ -40,17 +40,19 @@ public class BookingManager : IBookingManager
         return await fieldResult.MatchAsync<Either<Error, Booking>>(
             async field =>
             {
-                var to = command.From.AddMinutes((int)command.Duration);
-                var slots = field.Pitches
-                    .Select(
-                        pitch =>
-                            new Slot(
-                                Guid.NewGuid(),
-                                command.Name,
-                                command.From,
-                                to,
-                                command.Price,
-                                pitch.Id
+                var slots = GenerateWeeklySessions(command)
+                    .SelectMany(
+                        session =>
+                            field.Pitches.Select(
+                                pitch =>
+                                    new Slot(
+                                        Guid.NewGuid(),
+                                        command.Name,
+                                        session.From,
+                                        session.To,
+                                        command.Price,
+                                        pitch.Id
+                                    )
                             )
                     )
                     .ToImmutableList();
@@ -69,15 +71,42 @@ public class BookingManager : IBookingManager
         );
     }
 
-    public async Task<Either<Error, Booking>> CreateRecurringAsync(
-        CreateRecurringBookingCommand command
-    )
+    public async Task<Either<Error, Booking>> CreateCampAsync(CreateCampBookingCommand command)
     {
-        var booking = new Booking(Guid.NewGuid(), string.Empty, null, null);
+        var fieldResult = await _fieldGateway.GetAsync(command.FieldId);
 
-        var newBooking = await _bookingGateway.CreateAsync(booking);
+        return await fieldResult.MatchAsync<Either<Error, Booking>>(
+            async field =>
+            {
+                var slots = command.Sessions
+                    .SelectMany(
+                        session =>
+                            field.Pitches.Select(
+                                pitch =>
+                                    new Slot(
+                                        Guid.NewGuid(),
+                                        command.Name,
+                                        session.From,
+                                        session.From.AddMinutes(session.Duration),
+                                        session.Price,
+                                        pitch.Id
+                                    )
+                            )
+                    )
+                    .ToImmutableList();
 
-        return newBooking.Match<Either<Error, Booking>>(b => b, err => err);
+                var booking = new Booking(
+                    Guid.NewGuid(),
+                    command.Name,
+                    Contact.EmptyWithId(command.ContactId),
+                    slots
+                );
+
+                var newBooking = await _bookingGateway.CreateAsync(booking);
+                return newBooking.Match<Either<Error, Booking>>(b => b, err => err);
+            },
+            err => err
+        );
     }
 
     public Task<Either<Error, Booking>> GetAsync(Guid id)
@@ -96,5 +125,25 @@ public class BookingManager : IBookingManager
             },
             error => error
         );
+    }
+
+    private static IEnumerable<(DateTime From, DateTime To)> GenerateWeeklySessions(
+        CreateSingleBookingCommand command
+    )
+    {
+        var durationMinutes = (int)command.Duration;
+
+        if (command.EndDate is null)
+        {
+            yield return (command.From, command.From.AddMinutes(durationMinutes));
+            yield break;
+        }
+
+        var current = command.From;
+        while (current <= command.EndDate)
+        {
+            yield return (current, current.AddMinutes(durationMinutes));
+            current = current.AddDays(7);
+        }
     }
 }

@@ -7,7 +7,8 @@ public record CreateSingleBookingCommand(
     decimal Price,
     bool IsWholeField,
     Guid ContactId,
-    Guid FieldId
+    Guid FieldId,
+    DateTime? EndDate = null
     );
 
 public enum BookingDurationType : int

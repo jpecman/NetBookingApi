@@ -19,6 +19,7 @@ namespace BookingApi.Common.Messaging
     {
         General = 0,
         Invalid = 1,
-        NotFound = 2
+        NotFound = 2,
+        Conflict = 3
     }
 }

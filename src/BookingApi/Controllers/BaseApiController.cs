@@ -27,6 +27,12 @@ namespace BookingApi.Controllers
                 return NotFound();
             }
 
+            if (error.ErrorType == ErrorType.Conflict)
+            {
+                Logger.LogWarning("{Message}", error.Message);
+                return Conflict();
+            }
+
             Logger.LogError("{Message}", error.Message);
             return new BadRequestObjectResult(JsonSerializer.Serialize(new ErrorResponse(new []{ error.Message}), new JsonSerializerOptions() { WriteIndented = true}));
         }
