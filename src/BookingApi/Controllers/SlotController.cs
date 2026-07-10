@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authorization;
+
 using BookingApi.Domain.Gateways;
 using BookingApi.Domain.Search;
 using BookingApi.Models.Bookings;
@@ -11,9 +13,14 @@ public class SlotController(ISlotGateway slotGateway, ILogger<SlotController> lo
     : BaseApiController(logger)
 {
     [HttpGet]
-    public async Task<ActionResult<SlotResponse[]>> GetAsync([FromQuery] DateTime from, DateTime to)
+    [Authorize(Policy = "ApiKeyOrJwt")]
+    public async Task<ActionResult<SlotResponse[]>> GetAsync(
+        [FromQuery] DateTime from,
+        DateTime to,
+        bool includeCancelled = false
+    )
     {
-        var result = await slotGateway.GetAsync(new SlotSearch(from, to));
+        var result = await slotGateway.GetAsync(new SlotSearch(from, to, includeCancelled));
 
         return HandleResponse(result, slots => slots.Select(s => s.ToResponse()).ToArray());
     }

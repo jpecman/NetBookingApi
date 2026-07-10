@@ -48,8 +48,14 @@ public class SlotGateway : Gateway, ISlotGateway
     {
         try
         {
-            var slots = await _dbContext.Slots.Include(s => s.Pitch)
-                .Where(s => s.Duration.LowerBound >= search.From.ToUniversalTime() && s.Duration.UpperBound <= search.To.ToUniversalTime())
+            var slots = await _dbContext.Slots
+                .Include(s => s.Pitch)
+                .Where(
+                    s =>
+                        s.Duration.LowerBound >= search.From.ToUniversalTime()
+                        && s.Duration.UpperBound <= search.To.ToUniversalTime()
+                        && (search.IncludeCancelled || s.Status != SlotStatus.Cancelled)
+                )
                 .ToListAsync();
 
             return Right(ImmutableArray.Create(slots.Select(x => x.ToDomain()).ToArray()));

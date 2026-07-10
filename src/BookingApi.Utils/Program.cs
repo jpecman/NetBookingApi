@@ -7,7 +7,11 @@ namespace BookingApi.Utils
     {
         static async Task Main(string[] args)
         {
-            string connectionString = "Server=localhost;Port=5432;database=BookingDb;uid=bookaneer;pwd=***REMOVED***;";
+            string connectionString =
+                Environment.GetEnvironmentVariable("CONNECTION_STRING")
+                ?? throw new InvalidOperationException(
+                    "CONNECTION_STRING environment variable is not set"
+                );
 
             try
             {
@@ -44,7 +48,6 @@ namespace BookingApi.Utils
             {
                 Console.WriteLine(ex);
             }
-
 
             Console.WriteLine("Done !");
         }

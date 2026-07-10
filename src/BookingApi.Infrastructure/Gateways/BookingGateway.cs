@@ -60,6 +60,7 @@ namespace BookingApi.Infrastructure.Gateways
                             s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime()
                             && s.Duration.UpperBound.ToUniversalTime()
                                 <= search.To.ToUniversalTime()
+                            && (search.IncludeCancelled || s.Status != SlotStatus.Cancelled)
                     )
                     .ToListAsync();
 
@@ -73,11 +74,16 @@ namespace BookingApi.Infrastructure.Gateways
             }
         }
 
-        public async Task<Either<Error, Unit>> CancelAsync(Guid bookingId, string? cancellationReason)
+        public async Task<Either<Error, Unit>> CancelAsync(
+            Guid bookingId,
+            string? cancellationReason
+        )
         {
             try
             {
-                var slots = await _dbContext.Slots.Where(s => s.BookingId == bookingId).ToListAsync();
+                var slots = await _dbContext.Slots
+                    .Where(s => s.BookingId == bookingId)
+                    .ToListAsync();
 
                 if (!slots.Any())
                     return Left(new Error(ErrorType.NotFound, $"Booking {bookingId} not found"));

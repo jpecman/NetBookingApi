@@ -8,6 +8,8 @@ using BookingApi.Infrastructure.DbEntities;
 using BookingApi.Infrastructure.Gateways;
 using BookingApi.Infrastructure.Services.LoginService;
 
+using BookingApi.Auth;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +28,7 @@ public class Program
         var configuration = builder.Configuration;
 
         var signingKey = configuration["SIGNING_KEY"];
+        var apiKey = configuration["API_KEY"];
 
         IdentityBuilder identityBuilder = builder.Services.AddIdentityCore<ApplicationUser>();
         identityBuilder.AddRoles<IdentityRole>();
@@ -60,7 +63,17 @@ public class Program
                         return Task.CompletedTask;
                     }
                 };
-            });
+            })
+            .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
+                ApiKeyAuthenticationOptions.Scheme,
+                options => options.ApiKey = apiKey ?? string.Empty
+            );
+
+        builder.Services.AddAuthorization(options =>
+            options.AddPolicy("ApiKeyOrJwt", policy =>
+                policy
+                    .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, ApiKeyAuthenticationOptions.Scheme)
+                    .RequireAuthenticatedUser()));
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
