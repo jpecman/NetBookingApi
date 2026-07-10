@@ -16,11 +16,14 @@ public class SlotController(ISlotGateway slotGateway, ILogger<SlotController> lo
     [Authorize(Policy = "ApiKeyOrJwt")]
     public async Task<ActionResult<SlotResponse[]>> GetAsync(
         [FromQuery] DateTime from,
-        DateTime to,
-        bool includeCancelled = false
+        [FromQuery] DateTime to,
+        [FromQuery] Guid fieldId,
+        [FromQuery] bool includeCancelled = false
     )
     {
-        var result = await slotGateway.GetAsync(new SlotSearch(from, to, includeCancelled));
+        var result = await slotGateway.GetAsync(
+            new SlotSearch(from, to, fieldId, includeCancelled)
+        );
 
         return HandleResponse(result, slots => slots.Select(s => s.ToResponse()).ToArray());
     }

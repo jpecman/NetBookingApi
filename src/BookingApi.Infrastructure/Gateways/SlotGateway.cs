@@ -52,7 +52,8 @@ public class SlotGateway : Gateway, ISlotGateway
                 .Include(s => s.Pitch)
                 .Where(
                     s =>
-                        s.Duration.LowerBound >= search.From.ToUniversalTime()
+                        s.Pitch.FieldId == search.FieldId
+                        && s.Duration.LowerBound >= search.From.ToUniversalTime()
                         && s.Duration.UpperBound <= search.To.ToUniversalTime()
                         && (search.IncludeCancelled || s.Status != SlotStatus.Cancelled)
                 )
