@@ -5,10 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
-public class ContactController(IContactGateway contactGateway, ILogger<ContactController> logger) : BaseApiController(logger)
+public class ContactController(IContactGateway contactGateway, ILogger<ContactController> logger)
+    : BaseApiController(logger)
 {
     [HttpPost]
-    public async Task<ActionResult<ContactResponse>> PostAsync([FromBody] CreateContactRequest request)
+    public async Task<ActionResult<ContactResponse>> PostAsync(
+        [FromBody] CreateContactRequest request
+    )
     {
         var result = await contactGateway.CreateAsync(request.ToDomain());
 
@@ -24,7 +27,7 @@ public class ContactController(IContactGateway contactGateway, ILogger<ContactCo
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ContactResponse>> GetAsync(Guid id)
+    public async Task<ActionResult<ContactResponse>> GetAsync([FromRoute] Guid id)
     {
         var result = await contactGateway.GetAsync(id);
 
@@ -32,7 +35,10 @@ public class ContactController(IContactGateway contactGateway, ILogger<ContactCo
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ContactResponse>> PutAsync(Guid id, [FromBody] UpdateContactRequest request)
+    public async Task<ActionResult<ContactResponse>> PutAsync(
+        [FromRoute] Guid id,
+        [FromBody] UpdateContactRequest request
+    )
     {
         var result = await contactGateway.UpdateAsync(request.ToDomain(id));
 
@@ -40,7 +46,7 @@ public class ContactController(IContactGateway contactGateway, ILogger<ContactCo
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult> DeleteAsync(Guid id)
+    public async Task<ActionResult> DeleteAsync([FromRoute] Guid id)
     {
         var result = await contactGateway.DeleteAsync(id);
 

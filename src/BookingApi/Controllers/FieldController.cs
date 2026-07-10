@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
-public class FieldController(IFieldGateway fieldGateway, ILogger<FieldController> logger) : BaseApiController(logger)
+public class FieldController(IFieldGateway fieldGateway, ILogger<FieldController> logger)
+    : BaseApiController(logger)
 {
     [HttpPost]
     public async Task<ActionResult<FieldResponse>> PostAsync([FromBody] CreateFieldRequest request)
@@ -24,7 +25,7 @@ public class FieldController(IFieldGateway fieldGateway, ILogger<FieldController
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<FieldResponse>> GetAsync(Guid id)
+    public async Task<ActionResult<FieldResponse>> GetAsync([FromRoute] Guid id)
     {
         var result = await fieldGateway.GetAsync(id);
 
@@ -32,7 +33,10 @@ public class FieldController(IFieldGateway fieldGateway, ILogger<FieldController
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<FieldResponse>> PutAsync(Guid id, [FromBody] UpdateFieldRequest request)
+    public async Task<ActionResult<FieldResponse>> PutAsync(
+        [FromRoute] Guid id,
+        [FromBody] UpdateFieldRequest request
+    )
     {
         var result = await fieldGateway.Update(request.ToDomain(id));
 
@@ -40,7 +44,7 @@ public class FieldController(IFieldGateway fieldGateway, ILogger<FieldController
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult> DeleteAsync(Guid id)
+    public async Task<ActionResult> DeleteAsync([FromRoute] Guid id)
     {
         var result = await fieldGateway.Delete(id);
 
