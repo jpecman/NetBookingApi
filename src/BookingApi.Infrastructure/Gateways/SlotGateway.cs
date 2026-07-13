@@ -44,6 +44,43 @@ public class SlotGateway : Gateway, ISlotGateway
         }
     }
 
+    public async Task<
+        Either<Error, IReadOnlyList<(Guid PitchId, DateTime From, DateTime To)>>
+    > GetExistingSlotsForDaysAsync(Guid fieldId, IReadOnlyList<DateTime> sessionDates)
+    {
+        try
+        {
+            var candidates = await _dbContext.Slots
+                .Where(
+                    s =>
+                        s.Pitch.FieldId == fieldId
+                        && s.Status != SlotStatus.Cancelled
+                        && sessionDates.Contains(s.Duration.LowerBound.Date)
+                )
+                .Select(
+                    s =>
+                        new
+                        {
+                            s.PitchId,
+                            From = s.Duration.LowerBound,
+                            To = s.Duration.UpperBound
+                        }
+                )
+                .ToListAsync();
+
+            return Right<Error, IReadOnlyList<(Guid, DateTime, DateTime)>>(
+                candidates.Select(c => (c.PitchId, c.From, c.To)).ToList()
+            );
+        }
+        catch (Exception ex)
+        {
+            return CreateErrorResponse<IReadOnlyList<(Guid, DateTime, DateTime)>>(
+                ex,
+                ErrorType.General
+            );
+        }
+    }
+
     public async Task<Either<Error, ImmutableArray<Slot>>> GetAsync(SlotSearch search)
     {
         try

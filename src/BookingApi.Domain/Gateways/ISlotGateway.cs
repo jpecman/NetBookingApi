@@ -12,5 +12,9 @@ public interface ISlotGateway
 {
     Task<Either<Error, ImmutableArray<Slot>>> GetAsync(SlotSearch search);
 
+    Task<
+        Either<Error, IReadOnlyList<(Guid PitchId, DateTime From, DateTime To)>>
+    > GetExistingSlotsForDaysAsync(Guid fieldId, IReadOnlyList<DateTime> sessionDates);
+
     Task<Either<Error, Unit>> CancelAsync(Guid slotId, string? cancellationReason);
 }
