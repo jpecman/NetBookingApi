@@ -25,6 +25,7 @@ namespace BookingApi.Tests
 
         private static readonly Guid _fieldId = new("1E7AAE86-F1A9-4B39-85B1-778CACD5732E");
         private static readonly Guid _contactId = new("BE20E86E-D5B3-4BD6-A5A9-1B705D1FC88C");
+        private static readonly Guid _otherContactId = new("C1D2E3F4-A5B6-7890-BC12-DE34FA567890");
         private static readonly Guid _pitchAId = new("A3C1D2E4-F5B6-7890-AB12-CD34EF567890");
         private static readonly Guid _pitchBId = new("B4D2E3F5-A6C7-8901-BC23-DE45FA678901");
 
@@ -84,6 +85,14 @@ namespace BookingApi.Tests
                 Email = "jpecman@gmail.com",
                 Phone = "776216469"
             });
+            dbContext.Contacts.Add(new ContactDb
+            {
+                Id = _otherContactId,
+                FirstName = "Other",
+                LastName = "Contact",
+                Email = "other@example.com",
+                Phone = "776216470"
+            });
 
             await dbContext.SaveChangesAsync();
         }
@@ -123,6 +132,34 @@ namespace BookingApi.Tests
 
             var secondResult = await controller.PostAsync(duplicate);
             Assert.IsNotInstanceOfType(secondResult.Result, typeof(OkObjectResult));
+        }
+
+        [TestMethod]
+        public async Task GetAsync_FilteredByContactId_ReturnsOnlyThatContactsBookings()
+        {
+            var controller = _serviceProvider.GetRequiredService<BookingController>();
+
+            var ownRequest = new BookingRequest("Own", DateTime.Now.Date.AddHours(10), (int)BookingDurationType.OneAndHalfHour, 1000, true, _contactId, _fieldId);
+            var otherRequest = new BookingRequest("Other", DateTime.Now.Date.AddHours(14), (int)BookingDurationType.OneAndHalfHour, 1000, true, _otherContactId, _fieldId);
+
+            Assert.IsInstanceOfType((await controller.PostAsync(ownRequest)).Result, typeof(OkObjectResult));
+            Assert.IsInstanceOfType((await controller.PostAsync(otherRequest)).Result, typeof(OkObjectResult));
+
+            var search = new SearchBookingRequest
+            {
+                From = DateTime.Now.Date,
+                To = DateTime.Now.Date.AddDays(1),
+                ContactId = _contactId
+            };
+
+            var searchResult = await controller.GetAsync(search);
+            var okResult = searchResult.Result as OkObjectResult;
+
+            Assert.IsNotNull(okResult);
+            var bookings = (BookingResponse[])okResult.Value!;
+
+            Assert.AreEqual(1, bookings.Length);
+            Assert.AreEqual(_contactId, bookings[0].Contact.Id);
         }
     }
 }

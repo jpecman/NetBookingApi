@@ -4,6 +4,7 @@ namespace BookingApi.Domain.Search
         DateTime From,
         DateTime To,
         Guid ExceptId,
-        bool IncludeCancelled = false
+        bool IncludeCancelled = false,
+        Guid? ContactId = null
     );
 }

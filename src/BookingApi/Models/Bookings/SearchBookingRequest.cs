@@ -9,6 +9,8 @@ namespace BookingApi.Models.Bookings
         public DateTime To { get; set; }
 
         public bool IncludeCancelled { get; set; } = false;
+
+        public Guid? ContactId { get; set; }
     }
 
     public static class SearchBookingRequestExtensions
@@ -19,7 +21,8 @@ namespace BookingApi.Models.Bookings
                 request.From,
                 request.To,
                 Guid.Empty,
-                request.IncludeCancelled
+                request.IncludeCancelled,
+                request.ContactId
             );
         }
     }

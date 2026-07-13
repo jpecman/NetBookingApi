@@ -61,6 +61,7 @@ namespace BookingApi.Infrastructure.Gateways
                             && s.Duration.UpperBound.ToUniversalTime()
                                 <= search.To.ToUniversalTime()
                             && (search.IncludeCancelled || s.Status != SlotStatus.Cancelled)
+                            && (search.ContactId == null || s.Booking.ContactId == search.ContactId)
                     )
                     .ToListAsync();
 
