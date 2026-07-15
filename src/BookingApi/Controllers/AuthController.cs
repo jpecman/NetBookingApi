@@ -55,5 +55,13 @@ namespace BookingApi.Controllers
                 error => HandleError(Error.Create(ErrorType.General))
             );
         }
+
+        [HttpPut("logout")]
+        public ActionResult Logout()
+        {
+            HttpContext.Response.Cookies.Delete("token", new CookieOptions { Path = "/" });
+
+            return Ok();
+        }
     }
 }
