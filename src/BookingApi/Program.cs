@@ -154,30 +154,37 @@ app.UseHttpsRedirection();
         await CreateRoleIfNeededAsync(logger, roleManager, UserRoles.Content);
 
         // try to create the admin
+        var adminEmail = configuration["ADMIN_EMAIL"];
+
         try
         {
-            var user = await userManager.Users.FirstOrDefaultAsync(u => u.Email == "jpecman@gmail.com");
+            if (string.IsNullOrEmpty(adminEmail))
+            {
+                throw new InvalidOperationException("ADMIN_EMAIL is not configured");
+            }
+
+            var user = await userManager.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
 
             if (user == null)
             {
-                user = new ApplicationUser() { Email = "jpecman@gmail.com", UserName = "jpecman@gmail.com" };
+                user = new ApplicationUser() { Email = adminEmail, UserName = adminEmail };
 
                 var password =
-                    configuration["JPECMAN_PASSWORD"]
-                    ?? throw new InvalidOperationException("JPECMAN_PASSWORD is not configured");
+                    configuration["ADMIN_PASSWORD"]
+                    ?? throw new InvalidOperationException("ADMIN_PASSWORD is not configured");
 
                 await userManager.CreateAsync(user, password);
                 var result = await userManager.AddToRoleAsync(user, UserRoles.Administrator);
 
                 if (!result.Succeeded)
                 {
-                    logger.LogError("Failed to add user jpecman@gmail.com to Administrators");
+                    logger.LogError("Failed to add user {AdminEmail} to Administrators", adminEmail);
                 }
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to add user jpecman@gmail.com to Administrators");
+            logger.LogError(ex, "Failed to add user {AdminEmail} to Administrators", adminEmail);
         }
 
     }

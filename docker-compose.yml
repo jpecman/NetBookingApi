@@ -21,7 +21,8 @@ services:
       - db
     environment:
       - SIGNING_KEY=${SIGNING_KEY}
-      - JPECMAN_PASSWORD=${JPECMAN_PASSWORD}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - API_KEY=${API_KEY}
       - CONNECTION_STRING=${CONNECTION_STRING}
 volumes:

@@ -22,7 +22,7 @@ namespace BookingApi.Utils
                 BookingApiDbContext dbContext = new BookingApiDbContext(options);
 
                 // dbContext.Fields.Add(new Infrastructure.DbEntities.FieldDb { Name = "Borovany Hlavni hriste" });
-                // dbContext.Contacts.Add(new Infrastructure.DbEntities.ContactDb { FirstName = "Jiri", LastName = "Pecman", Email = "jpecman@gmail.com", Phone = "123 456 789"});
+                // dbContext.Contacts.Add(new Infrastructure.DbEntities.ContactDb { FirstName = "John", LastName = "Doe", Email = "john.doe@example.com", Phone = "123 456 789"});
 
                 /* dbContext.Bookings.Add(new Infrastructure.DbEntities.BookingDb
                 {
