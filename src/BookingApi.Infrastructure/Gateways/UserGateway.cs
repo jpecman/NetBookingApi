@@ -151,7 +151,7 @@ public class UserGateway(UserManager<ApplicationUser> userManager, BookingApiDbC
                 u.Email,
                 Roles = dbContext.UserRoles
                     .Where(ur => ur.UserId == u.Id)
-                    .Join(dbContext.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                    .Join(dbContext.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name!)
                     .ToArray()
             })
             .ToListAsync();

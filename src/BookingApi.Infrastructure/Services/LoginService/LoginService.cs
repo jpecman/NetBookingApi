@@ -58,7 +58,7 @@ namespace BookingApi.Infrastructure.Services.LoginService
             {
                 var roles = await _userManager.GetRolesAsync(user);
                 return Right(
-                    new LoginResponseModel(IssueToken(user, roles), user.Email, user.UserName)
+                    new LoginResponseModel(IssueToken(user, roles), user.Email ?? string.Empty, user.UserName ?? string.Empty)
                 );
             }
 

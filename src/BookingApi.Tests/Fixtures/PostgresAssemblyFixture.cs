@@ -16,7 +16,7 @@ public class PostgresAssemblyFixture
     [AssemblyInitialize]
     public static async Task InitializeAsync(TestContext _)
     {
-        _container = new PostgreSqlBuilder()
+        _container = new PostgreSqlBuilder("postgres:14.1-alpine")
             .WithDatabase("BookingDb")
             .WithUsername("bookaneer")
             .WithPassword("***REMOVED***")

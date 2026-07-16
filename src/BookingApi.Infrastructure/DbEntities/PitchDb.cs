@@ -10,15 +10,15 @@ public class PitchDb
 {
     public Guid Id { get; set; }
 
-    public string Name { get; set; }
+    public string Name { get; set; } = null!;
 
     [Required]
     public Guid FieldId { get; set; }
 
     [ForeignKey(nameof(FieldId))]
-    public FieldDb Field { get; set; }
+    public FieldDb Field { get; set; } = null!;
 
-    public ICollection<SlotDb> Slots { get; set; }
+    public ICollection<SlotDb>? Slots { get; set; }
 }
 
 public static class PitchExtensions

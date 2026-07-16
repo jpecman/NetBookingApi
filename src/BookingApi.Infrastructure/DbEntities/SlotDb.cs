@@ -14,7 +14,7 @@ namespace BookingApi.Infrastructure.DbEntities
     {
         public Guid Id { get; set; }
 
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         public NpgsqlRange<DateTime> Duration { get; set; }
 
@@ -24,13 +24,13 @@ namespace BookingApi.Infrastructure.DbEntities
         public Guid PitchId { get; set; }
 
         [ForeignKey(nameof(PitchId))]
-        public PitchDb Pitch { get; set; }
+        public PitchDb Pitch { get; set; } = null!;
 
         [Required]
         public Guid BookingId { get; set; }
 
         [ForeignKey(nameof(BookingId))]
-        public BookingDb Booking { get; set; }
+        public BookingDb Booking { get; set; } = null!;
 
         public SlotStatus Status { get; set; } = SlotStatus.Booked;
 

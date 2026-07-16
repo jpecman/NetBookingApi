@@ -13,12 +13,12 @@ namespace BookingApi.Infrastructure.DbEntities
     {
         public Guid Id { get; set; }
 
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         [Timestamp]
         public uint Version { get; set; }
 
-        public ICollection<PitchDb> Pitches { get; set; }
+        public ICollection<PitchDb> Pitches { get; set; } = null!;
     }
 
     public static class FieldExtensions

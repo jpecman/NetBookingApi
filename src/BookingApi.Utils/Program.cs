@@ -40,7 +40,7 @@ namespace BookingApi.Utils
 
                 await dbContext.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException dbUpdateEx)
+            catch (DbUpdateConcurrencyException)
             {
                 Console.WriteLine("Entity not up to date.");
             }

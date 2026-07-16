@@ -27,7 +27,9 @@ public class Program
 
         var configuration = builder.Configuration;
 
-        var signingKey = configuration["SIGNING_KEY"];
+        var signingKey =
+            configuration["SIGNING_KEY"]
+            ?? throw new InvalidOperationException("SIGNING_KEY is not configured");
         var apiKey = configuration["API_KEY"];
 
         IdentityBuilder identityBuilder = builder.Services.AddIdentityCore<ApplicationUser>();
@@ -81,7 +83,9 @@ public class Program
 
         builder.Services.AddCors();
 
-        string connectionString = configuration["CONNECTION_STRING"];
+        string connectionString =
+            configuration["CONNECTION_STRING"]
+            ?? throw new InvalidOperationException("CONNECTION_STRING is not configured");
 
         builder.Services.AddDbContext<BookingApiDbContext>(options =>
         {
@@ -135,15 +139,15 @@ app.UseHttpsRedirection();
 
     private static async Task MigrateDatabaseAsync(IServiceScope scope)
     {
-        var dbContext = scope.ServiceProvider.GetService<BookingApiDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<BookingApiDbContext>();
         await dbContext.Database.MigrateAsync();
     }
 
     private static async Task EnsureRolesAndAdminAccountAsync(IServiceScope scope, ConfigurationManager configuration)
     {
-        var loggerFactory = scope.ServiceProvider.GetService<ILoggerFactory>();
-        var roleManager = scope.ServiceProvider.GetService<RoleManager<IdentityRole>>();
-        var userManager = scope.ServiceProvider.GetService<UserManager<ApplicationUser>>();
+        var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         ILogger logger = loggerFactory.CreateLogger<Program>();
 
         await CreateRoleIfNeededAsync(logger, roleManager, UserRoles.Administrator);
@@ -158,7 +162,9 @@ app.UseHttpsRedirection();
             {
                 user = new ApplicationUser() { Email = "jpecman@gmail.com", UserName = "jpecman@gmail.com" };
 
-                var password = configuration["JPECMAN_PASSWORD"];
+                var password =
+                    configuration["JPECMAN_PASSWORD"]
+                    ?? throw new InvalidOperationException("JPECMAN_PASSWORD is not configured");
 
                 await userManager.CreateAsync(user, password);
                 var result = await userManager.AddToRoleAsync(user, UserRoles.Administrator);
