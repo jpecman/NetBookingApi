@@ -63,7 +63,12 @@ namespace BookingApi.Infrastructure.DbEntities
             {
                 Id = domain.Id,
                 Name = domain.Name,
-                Duration = new NpgsqlRange<DateTime>(domain.From.ToUniversalTime(), domain.To.ToUniversalTime()),
+                Duration = new NpgsqlRange<DateTime>(
+                    domain.From.ToUniversalTime(),
+                    lowerBoundIsInclusive: true,
+                    domain.To.ToUniversalTime(),
+                    upperBoundIsInclusive: false
+                ),
                 Price = domain.Price,
                 PitchId = domain.PitchId,
                 Status = domain.Status,
