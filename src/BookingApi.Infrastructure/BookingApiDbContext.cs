@@ -9,9 +9,8 @@ namespace BookingApi.Infrastructure;
 
 public class BookingApiDbContext : IdentityDbContext<ApplicationUser>
 {
-    public BookingApiDbContext(DbContextOptions options) : base(options)
-    {
-    }
+    public BookingApiDbContext(DbContextOptions options)
+        : base(options) { }
 
     public DbSet<BookingDb> Bookings { get; set; }
 
@@ -19,9 +18,9 @@ public class BookingApiDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<FieldDb> Fields { get; set; }
 
+    public DbSet<PitchDb> Pitches { get; set; }
+
     public DbSet<SlotDb> Slots { get; set; }
 }
 
-public class ApplicationUser : IdentityUser
-{
-}
+public class ApplicationUser : IdentityUser { }

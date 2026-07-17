@@ -6,11 +6,10 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-using BookingApi.Domain.Services.LoginService;
+using BookingApi.Application.Services.LoginService;
 
 using LanguageExt;
 
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -21,28 +20,27 @@ namespace BookingApi.Infrastructure.Services.LoginService
 {
     public class LoginService : ILoginService
     {
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly LoginServiceOptions _options;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<LoginService> _logger;
         private readonly UserManager<ApplicationUser> _userManager;
 
         public LoginService(
-            IHttpContextAccessor httpContextAccessor,
             LoginServiceOptions options,
             SignInManager<ApplicationUser> signInManager,
             ILogger<LoginService> logger,
             UserManager<ApplicationUser> userManager
         )
         {
-            _httpContextAccessor = httpContextAccessor;
             _options = options;
             _signInManager = signInManager;
             _logger = logger;
             _userManager = userManager;
         }
 
-        public async Task<Either<LoginError, LoginResponseModel>> LoginAsync(LoginRequestModel request)
+        public async Task<Either<LoginError, LoginResponseModel>> LoginAsync(
+            LoginRequestModel request
+        )
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
 
@@ -51,25 +49,41 @@ namespace BookingApi.Infrastructure.Services.LoginService
                 return Left(LoginError.UserNotFound);
             }
 
-            var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, true);
+            var result = await _signInManager.CheckPasswordSignInAsync(
+                user,
+                request.Password,
+                true
+            );
             if (result.Succeeded)
             {
-                return Right(new LoginResponseModel(IssueToken()));
+                var roles = await _userManager.GetRolesAsync(user);
+                return Right(
+                    new LoginResponseModel(IssueToken(user, roles), user.Email ?? string.Empty, user.UserName ?? string.Empty)
+                );
             }
 
             return Left(LoginError.UserLockedOut);
         }
 
-        private string IssueToken()
+        private string IssueToken(ApplicationUser user, IList<string> roles)
         {
-            ClaimsIdentity claims = ((ClaimsIdentity)_httpContextAccessor.HttpContext.User.Identity) ?? new ClaimsIdentity();
-            claims.AddClaim(new Claim(ClaimTypes.Sid, "1"));
+            var claims = new ClaimsIdentity();
+            claims.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id));
+            claims.AddClaim(new Claim(ClaimTypes.Email, user.Email ?? string.Empty));
+
+            foreach (var role in roles)
+            {
+                claims.AddClaim(new Claim(ClaimTypes.Role, role));
+            }
 
             var now = DateTimeOffset.Now.UtcDateTime;
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_options.SigningKey));
-            var signingCredentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256Signature);
+            var signingCredentials = new SigningCredentials(
+                signingKey,
+                SecurityAlgorithms.HmacSha256Signature
+            );
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {

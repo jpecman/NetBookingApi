@@ -14,23 +14,27 @@ namespace BookingApi.Infrastructure.DbEntities
     {
         public Guid Id { get; set; }
 
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         public NpgsqlRange<DateTime> Duration { get; set; }
 
         public decimal Price { get; set; }
 
         [Required]
-        public Guid FieldId { get; set; }
+        public Guid PitchId { get; set; }
 
-        [ForeignKey(nameof(FieldId))]
-        public FieldDb Field { get; set; }
+        [ForeignKey(nameof(PitchId))]
+        public PitchDb Pitch { get; set; } = null!;
 
         [Required]
         public Guid BookingId { get; set; }
 
         [ForeignKey(nameof(BookingId))]
-        public BookingDb Booking { get; set; }
+        public BookingDb Booking { get; set; } = null!;
+
+        public SlotStatus Status { get; set; } = SlotStatus.Booked;
+
+        public string? CancellationReason { get; set; }
 
         [Timestamp]
         public uint Version { get; set; }
@@ -47,7 +51,9 @@ namespace BookingApi.Infrastructure.DbEntities
                 entity.Duration.LowerBound,
                 entity.Duration.UpperBound,
                 entity.Price,
-                entity.Field.ToDomain()
+                entity.PitchId,
+                entity.Status,
+                entity.CancellationReason
             );
         }
 
@@ -57,16 +63,17 @@ namespace BookingApi.Infrastructure.DbEntities
             {
                 Id = domain.Id,
                 Name = domain.Name,
-                Duration = new NpgsqlRange<DateTime>(domain.From.ToUniversalTime(), domain.To.ToUniversalTime()),
+                Duration = new NpgsqlRange<DateTime>(
+                    domain.From.ToUniversalTime(),
+                    lowerBoundIsInclusive: true,
+                    domain.To.ToUniversalTime(),
+                    upperBoundIsInclusive: false
+                ),
                 Price = domain.Price,
-                FieldId = domain.Field.Id
+                PitchId = domain.PitchId,
+                Status = domain.Status,
+                CancellationReason = domain.CancellationReason
             };
-        }
-
-        // TODO: move to common
-        private static DateTime GetDateTime(DateOnly date, TimeOnly time)
-        {
-            return new DateTime(date.Year, date.Month, date.Day) + time.ToTimeSpan();
         }
     }
 }

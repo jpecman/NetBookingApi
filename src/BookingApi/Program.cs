@@ -1,11 +1,14 @@
 using System.Text;
 
-using BookingApi.Domain;
-using BookingApi.Domain.Repositories;
-using BookingApi.Domain.Services.LoginService;
+using BookingApi.Application;
+using BookingApi.Application.Services.LoginService;
+using BookingApi.Domain.Gateways;
 using BookingApi.Infrastructure;
-using BookingApi.Infrastructure.Repositories;
+using BookingApi.Infrastructure.DbEntities;
+using BookingApi.Infrastructure.Gateways;
 using BookingApi.Infrastructure.Services.LoginService;
+
+using BookingApi.Auth;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -24,7 +27,10 @@ public class Program
 
         var configuration = builder.Configuration;
 
-        var signingKey = configuration["SIGNING_KEY"];
+        var signingKey =
+            configuration["SIGNING_KEY"]
+            ?? throw new InvalidOperationException("SIGNING_KEY is not configured");
+        var apiKey = configuration["API_KEY"];
 
         IdentityBuilder identityBuilder = builder.Services.AddIdentityCore<ApplicationUser>();
         identityBuilder.AddRoles<IdentityRole>();
@@ -50,7 +56,26 @@ public class Program
                     ValidateAudience = false,
                     ValidateLifetime = true,
                 };
-            });
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        context.Token = context.Request.Cookies["token"];
+                        return Task.CompletedTask;
+                    }
+                };
+            })
+            .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
+                ApiKeyAuthenticationOptions.Scheme,
+                options => options.ApiKey = apiKey ?? string.Empty
+            );
+
+        builder.Services.AddAuthorization(options =>
+            options.AddPolicy("ApiKeyOrJwt", policy =>
+                policy
+                    .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, ApiKeyAuthenticationOptions.Scheme)
+                    .RequireAuthenticatedUser()));
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
@@ -58,19 +83,28 @@ public class Program
 
         builder.Services.AddCors();
 
-        string connectionString = configuration["CONNECTION_STRING"];
+        string connectionString =
+            configuration["CONNECTION_STRING"]
+            ?? throw new InvalidOperationException("CONNECTION_STRING is not configured");
 
-        builder.Services.AddDbContext<BookingApiDbContext>(options => options.UseNpgsql(connectionString));
+        builder.Services.AddDbContext<BookingApiDbContext>(options =>
+        {
+            options.UseNpgsql(connectionString);
+            
+            if (builder.Environment.IsDevelopment())
+                options.EnableSensitiveDataLogging();
+        });
 
         builder.Services.AddScoped<IBookingManager, BookingManager>();
-        builder.Services.AddScoped<IBookingRepository, BookingRepository>();
-        builder.Services.AddScoped<IContactRepository, ContactRepository>();
-        builder.Services.AddScoped<IFieldRepository, FieldRepository>();
-        builder.Services.AddScoped<ISlotRepository, SlotRepository>();
+        builder.Services.AddScoped<IBookingGateway, BookingGateway>();
+        builder.Services.AddScoped<IFieldGateway, FieldGateway>();
+        builder.Services.AddScoped<IPitchGateway, PitchGateway>();
+        builder.Services.AddScoped<ISlotGateway, SlotGateway>();
+        builder.Services.AddScoped<IContactGateway, ContactGateway>();
+        builder.Services.AddScoped<IUserGateway, UserGateway>();
         builder.Services.AddScoped<ILoginService, LoginService>();
 
         builder.Services.AddSingleton(new LoginServiceOptions() { SigningKey = signingKey });
-        builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
         var app = builder.Build();
 
@@ -82,9 +116,10 @@ public class Program
         }
 
         app.UseCors(options => options
-            .AllowAnyOrigin()
+            .WithOrigins("http://localhost:5173")
             .AllowAnyMethod()
-            .AllowAnyHeader());
+            .AllowAnyHeader()
+            .AllowCredentials());
 
 #if !DEBUG
 app.UseHttpsRedirection();
@@ -97,51 +132,84 @@ app.UseHttpsRedirection();
 
         await MigrateDatabaseAsync(scope);
         await EnsureRolesAndAdminAccountAsync(scope, configuration);
+        await SeedDataAsync(scope);
 
         app.Run();
     }
 
     private static async Task MigrateDatabaseAsync(IServiceScope scope)
     {
-        var dbContext = scope.ServiceProvider.GetService<BookingApiDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<BookingApiDbContext>();
         await dbContext.Database.MigrateAsync();
     }
 
     private static async Task EnsureRolesAndAdminAccountAsync(IServiceScope scope, ConfigurationManager configuration)
     {
-        var loggerFactory = scope.ServiceProvider.GetService<ILoggerFactory>();
-        var roleManager = scope.ServiceProvider.GetService<RoleManager<IdentityRole>>();
-        var userManager = scope.ServiceProvider.GetService<UserManager<ApplicationUser>>();
+        var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         ILogger logger = loggerFactory.CreateLogger<Program>();
 
         await CreateRoleIfNeededAsync(logger, roleManager, UserRoles.Administrator);
         await CreateRoleIfNeededAsync(logger, roleManager, UserRoles.Content);
 
         // try to create the admin
+        var adminEmail = configuration["ADMIN_EMAIL"];
+
         try
         {
-            var user = await userManager.Users.FirstOrDefaultAsync(u => u.Email == "jpecman@gmail.com");
+            if (string.IsNullOrEmpty(adminEmail))
+            {
+                throw new InvalidOperationException("ADMIN_EMAIL is not configured");
+            }
+
+            var user = await userManager.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
 
             if (user == null)
             {
-                user = new ApplicationUser() { Email = "jpecman@gmail.com", UserName = "jpecman@gmail.com" };
+                user = new ApplicationUser() { Email = adminEmail, UserName = adminEmail };
 
-                var password = configuration["JPECMAN_PASSWORD"];
+                var password =
+                    configuration["ADMIN_PASSWORD"]
+                    ?? throw new InvalidOperationException("ADMIN_PASSWORD is not configured");
 
                 await userManager.CreateAsync(user, password);
                 var result = await userManager.AddToRoleAsync(user, UserRoles.Administrator);
 
                 if (!result.Succeeded)
                 {
-                    logger.LogError("Failed to add user jpecman@gmail.com to Administrators");
+                    logger.LogError("Failed to add user {AdminEmail} to Administrators", adminEmail);
                 }
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to add user jpecman@gmail.com to Administrators");
+            logger.LogError(ex, "Failed to add user {AdminEmail} to Administrators", adminEmail);
         }
 
+    }
+
+    private static async Task SeedDataAsync(IServiceScope scope)
+    {
+        var db = scope.ServiceProvider.GetRequiredService<BookingApiDbContext>();
+
+        if (await db.Fields.AnyAsync())
+        {
+            return;
+        }
+
+        db.Fields.Add(new FieldDb
+        {
+            Id = Guid.NewGuid(),
+            Name = "Main Field",
+            Pitches =
+            [
+                new PitchDb { Id = Guid.NewGuid(), Name = "Pitch A" },
+                new PitchDb { Id = Guid.NewGuid(), Name = "Pitch B" },
+            ]
+        });
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task CreateRoleIfNeededAsync(ILogger logger, RoleManager<IdentityRole> roleManager, string roleName)

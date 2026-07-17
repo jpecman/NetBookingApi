@@ -12,9 +12,10 @@ namespace BookingApi.Domain.Entities
         string FirstName,
         string LastName,
         string Email,
-        string Phone
+        string Phone,
+        bool Show
     )
     {
-        public static Contact EmptyWithId(Guid id) => new(id, string.Empty, string.Empty, string.Empty, string.Empty);
+        public static Contact EmptyWithId(Guid id) => new(id, string.Empty, string.Empty, string.Empty, string.Empty, false);
     }
 }

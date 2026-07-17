@@ -5,12 +5,12 @@ services:
     image: postgres:14.1-alpine
     restart: always
     environment:
-      - POSTGRES_USER=bookaneer
-      - POSTGRES_PASSWORD=***REMOVED***
-      - POSTGRES_DB=BookingDb
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - '5432:5432'
-    volumes: 
+    volumes:
       - db:/var/lib/postgresql/data
   api:
     image: jpreg.azurecr.io/booking-api:241102
@@ -20,8 +20,11 @@ services:
     depends_on:
       - db
     environment:
-      - SIGNING_KEY=***REMOVED***
-      - JPECMAN_PASSWORD=***REMOVED***
+      - SIGNING_KEY=${SIGNING_KEY}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - API_KEY=${API_KEY}
+      - CONNECTION_STRING=${CONNECTION_STRING}
 volumes:
   db:
     driver: local

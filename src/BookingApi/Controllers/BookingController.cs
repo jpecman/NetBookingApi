@@ -1,23 +1,16 @@
-
-using BookingApi.Domain;
+using BookingApi.Application;
 using BookingApi.Models.Bookings;
 using LanguageExt;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
-public class BookingController : BaseApiController
+public class BookingController(ILogger<BookingController> logger, IBookingManager bookingManager)
+    : BaseApiController(logger)
 {
-    private readonly ILogger<BookingController> _logger;
-    private readonly IBookingManager _bookingManager;
+    private readonly IBookingManager _bookingManager = bookingManager;
 
-    public BookingController(ILogger<BookingController> logger, IBookingManager bookingManager)
-    {
-        _logger = logger;
-        _bookingManager = bookingManager;
-    }
-
-    [HttpPost("simple")]
+    [HttpPost]
     public async Task<ActionResult<BookingResponse>> PostAsync([FromBody] BookingRequest booking)
     {
         var createResponse = await _bookingManager.CreateAsync(booking.ToDomain());
@@ -25,12 +18,24 @@ public class BookingController : BaseApiController
         return HandleResponse(createResponse, x => x.ToResponse());
     }
 
-    [HttpPost("recurring")]
-    public async Task<ActionResult<BookingResponse>> CreateRecurringBooking([FromBody] RecurringBookingRequest request)
+    [HttpPost("camp")]
+    public async Task<ActionResult<BookingResponse>> PostCampAsync(
+        [FromBody] CampBookingRequest request
+    )
     {
-        var createResponse = await _bookingManager.CreateRecurringAsync(request.ToDomain());
+        var createResponse = await _bookingManager.CreateCampAsync(request.ToDomain());
 
-        return HandleResponse(createResponse, booking => booking);
+        return HandleResponse(createResponse, x => x.ToResponse());
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteAsync(
+        [FromRoute] Guid id,
+        [FromBody] CancelRequest? request = null
+    )
+    {
+        var result = await _bookingManager.CancelBookingAsync(id, request?.CancellationReason);
+        return result.Match<ActionResult>(_ => NoContent(), HandleError);
     }
 
     [HttpGet("{id}")]
@@ -42,10 +47,15 @@ public class BookingController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<BookingResponse[]>> GetAsync([FromQuery] SearchBookingRequest search)
+    public async Task<ActionResult<BookingResponse[]>> GetAsync(
+        [FromQuery] SearchBookingRequest search
+    )
     {
         var getResponse = await _bookingManager.GetAsync(search.ToDomain());
 
-        return HandleResponse(getResponse, bookings => bookings.Select(b => b.ToResponse()).ToArray());
+        return HandleResponse(
+            getResponse,
+            bookings => bookings.Select(b => b.ToResponse()).ToArray()
+        );
     }
 }

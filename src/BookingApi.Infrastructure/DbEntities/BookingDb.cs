@@ -16,15 +16,15 @@ namespace BookingApi.Infrastructure.DbEntities
     {
         public Guid Id { get; set; }
 
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         [Required]
         public Guid ContactId { get; set; }
 
         [ForeignKey(nameof(ContactId))]
-        public ContactDb Contact { get; set; }
+        public ContactDb Contact { get; set; } = null!;
 
-        public List<SlotDb> Slots { get; set; }
+        public List<SlotDb> Slots { get; set; } = null!;
 
         [Timestamp]
         public uint Version { get; set; }

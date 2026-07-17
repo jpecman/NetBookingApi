@@ -19,7 +19,7 @@ namespace BookingApi.Common.Messaging
 
     public class Success<T> : Response<T>
     {
-        public T Data { get; set; }
+        public T Data { get; set; } = default!;
 
         public Success()
         {

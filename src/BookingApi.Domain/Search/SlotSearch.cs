@@ -1,12 +1,3 @@
 namespace BookingApi.Domain.Search;
 
-public record SlotSearch(
-    DateTime From,
-    DateTime To
-)
-{
-    public SlotSearch ToDomain()
-    {
-        throw new NotImplementedException();
-    }
-}
+public record SlotSearch(DateTime From, DateTime To, Guid FieldId, bool IncludeCancelled = false);

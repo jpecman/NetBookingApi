@@ -1,25 +1,40 @@
-using BookingApi.Domain.Repositories;
+using Microsoft.AspNetCore.Authorization;
+
+using BookingApi.Domain.Gateways;
 using BookingApi.Domain.Search;
+using BookingApi.Models.Bookings;
 using BookingApi.Models.Slots;
 
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
-public class SlotController : BaseApiController
+public class SlotController(ISlotGateway slotGateway, ILogger<SlotController> logger)
+    : BaseApiController(logger)
 {
-    private readonly ISlotRepository _slotRepository;
-
-    public SlotController(ISlotRepository slotRepository)
+    [HttpGet]
+    [Authorize(Policy = "ApiKeyOrJwt")]
+    public async Task<ActionResult<SlotResponse[]>> GetAsync(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        [FromQuery] Guid fieldId,
+        [FromQuery] bool includeCancelled = false
+    )
     {
-        _slotRepository = slotRepository;
+        var result = await slotGateway.GetAsync(
+            new SlotSearch(from, to, fieldId, includeCancelled)
+        );
+
+        return HandleResponse(result, slots => slots.Select(s => s.ToResponse()).ToArray());
     }
 
-    [HttpGet]
-    public async Task<ActionResult<SlotResponse[]>> GetAsync([FromQuery] DateTime from, DateTime to)
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteAsync(
+        [FromRoute] Guid id,
+        [FromBody] CancelRequest? request = null
+    )
     {
-        var response = await _slotRepository.GetAsync(new SlotRequest(from, to).ToDomain());
-
-        return HandleResponse(response, slots => slots.Select(s => s.ToResponse()).ToArray());
+        var result = await slotGateway.CancelAsync(id, request?.CancellationReason);
+        return result.Match<ActionResult>(_ => NoContent(), HandleError);
     }
 }

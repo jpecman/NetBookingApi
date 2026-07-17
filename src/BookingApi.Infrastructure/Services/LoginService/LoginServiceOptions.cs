@@ -8,6 +8,6 @@ namespace BookingApi.Infrastructure.Services.LoginService
 {
     public  class LoginServiceOptions
     {
-        public string SigningKey { get; set; }
+        public string SigningKey { get; set; } = null!;
     }
 }

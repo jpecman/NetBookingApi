@@ -1,62 +1,55 @@
-using System.Collections.Immutable;
-
-using BookingApi.Common.Messaging;
-using BookingApi.Domain.Entities;
-using BookingApi.Domain.Repositories;
-using BookingApi.Domain.Search;
+using BookingApi.Domain.Gateways;
 using BookingApi.Models.Contacts;
+
 using Microsoft.AspNetCore.Mvc;
 
-namespace BookingApi.Controllers
+namespace BookingApi.Controllers;
+
+public class ContactController(IContactGateway contactGateway, ILogger<ContactController> logger)
+    : BaseApiController(logger)
 {
-    public class ContactController : BaseApiController
+    [HttpPost]
+    public async Task<ActionResult<ContactResponse>> PostAsync(
+        [FromBody] CreateContactRequest request
+    )
     {
-        private readonly ILogger<ContactController> _logger;
-        private readonly IContactRepository _repo;
+        var result = await contactGateway.CreateAsync(request.ToDomain());
 
-        public ContactController(ILogger<ContactController> logger, IContactRepository repo)
-        {
-            _logger = logger;
-            _repo = repo;
-        }
+        return HandleResponse(result, c => c.ToResponse());
+    }
 
-        [HttpPost]
-        public async Task<ActionResult<ContactResponse>> PostAsync([FromBody] CreateContactRequest contact)
-        {
-            var response = await _repo.Create(contact.ToDomain());
+    [HttpGet]
+    public async Task<ActionResult<ContactResponse[]>> GetAsync()
+    {
+        var result = await contactGateway.GetAllAsync();
 
-            if (response is Success<Contact> success)
-            {
-                return Ok(success.Data.ToResponse());
-            }
+        return HandleResponse(result, contacts => contacts.Select(c => c.ToResponse()).ToArray());
+    }
 
-            return BadRequest();
-        }
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ContactResponse>> GetAsync([FromRoute] Guid id)
+    {
+        var result = await contactGateway.GetAsync(id);
 
-        [HttpGet]
-        public async Task<ActionResult<ContactResponse[]>> GetAsync()
-        {
-            var response = await _repo.SearchAsync(ContactSearch.Empty());
+        return HandleResponse(result, c => c.ToResponse());
+    }
 
-            if (response is Success<ImmutableArray<Contact>> success)
-            {
-                return Ok(success.Data.Select(c => c.ToResponse()));
-            }
+    [HttpPut("{id}")]
+    public async Task<ActionResult<ContactResponse>> PutAsync(
+        [FromRoute] Guid id,
+        [FromBody] UpdateContactRequest request
+    )
+    {
+        var result = await contactGateway.UpdateAsync(request.ToDomain(id));
 
-            return BadRequest();
-        }
+        return HandleResponse(result, c => c.ToResponse());
+    }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ContactResponse>> GetAsync(Guid id)
-        {
-            var response = await _repo.GetAsync(id);
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteAsync([FromRoute] Guid id)
+    {
+        var result = await contactGateway.DeleteAsync(id);
 
-            if (response is Success<Contact> success)
-            {
-                return Ok(success.Data.ToResponse());
-            }
-
-            return BadRequest();
-        }
+        return result.Match<ActionResult>(_ => NoContent(), HandleError);
     }
 }
