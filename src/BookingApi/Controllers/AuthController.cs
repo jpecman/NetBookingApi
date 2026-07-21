@@ -33,27 +33,48 @@ namespace BookingApi.Controllers
         {
             var result = await loginService.LoginAsync(request.ToDomain());
 
-            return result.Match<ActionResult>(
-                success =>
+            return result.Match<ActionResult>(SignIn, HandleLoginError);
+        }
+
+        [HttpPut("password")]
+        [AllowAnonymous]
+        public async Task<ActionResult<UserLoginResponse>> ChangePasswordAsync(
+            [FromBody] UserChangePasswordRequest request
+        )
+        {
+            var result = await loginService.ChangePasswordAsync(request.ToDomain());
+
+            return result.Match<ActionResult>(SignIn, HandleLoginError);
+        }
+
+        private ActionResult SignIn(LoginResponseModel success)
+        {
+            HttpContext.Response.Cookies.Append(
+                "token",
+                success.Token,
+                new CookieOptions
                 {
-                    HttpContext.Response.Cookies.Append(
-                        "token",
-                        success.Token,
-                        new CookieOptions
-                        {
-                            HttpOnly = true,
-                            Secure = false,
-                            SameSite = SameSiteMode.Lax,
-                            Expires = DateTimeOffset.UtcNow.AddHours(8),
-                            Path = "/"
-                        }
-                    );
-                    return Ok(
-                        new UserLoginResponse(success.Token, success.Email, success.UserName)
-                    );
-                },
-                error => HandleError(Error.Create(ErrorType.General))
+                    HttpOnly = true,
+                    Secure = false,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTimeOffset.UtcNow.AddHours(8),
+                    Path = "/"
+                }
             );
+            return Ok(new UserLoginResponse(success.Token, success.Email, success.UserName));
+        }
+
+        private ActionResult HandleLoginError(LoginError error)
+        {
+            // 403 is the SPA's signal to switch to the set-new-password step;
+            // login produces no other 403s. Everything else stays a generic 400
+            // so responses don't reveal whether the account exists.
+            if (error == LoginError.PasswordChangeRequired)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden);
+            }
+
+            return HandleError(Error.Create(ErrorType.General));
         }
 
         [HttpPut("logout")]

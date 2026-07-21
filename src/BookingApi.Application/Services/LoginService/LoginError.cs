@@ -4,5 +4,8 @@ public enum LoginError
 {
     InvalidParameters,
     UserNotFound,
-    UserLockedOut
+    UserLockedOut,
+    NoTenantMembership,
+    PasswordChangeRequired,
+    InvalidNewPassword
 }

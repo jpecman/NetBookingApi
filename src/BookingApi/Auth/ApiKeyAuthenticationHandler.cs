@@ -1,9 +1,11 @@
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Encodings.Web;
 
+using BookingApi.Infrastructure;
+using BookingApi.Infrastructure.Tenancy;
+
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace BookingApi.Auth;
@@ -11,25 +13,31 @@ namespace BookingApi.Auth;
 public class ApiKeyAuthenticationHandler(
     IOptionsMonitor<ApiKeyAuthenticationOptions> options,
     ILoggerFactory logger,
-    UrlEncoder encoder
+    UrlEncoder encoder,
+    BookingApiDbContext dbContext
 ) : AuthenticationHandler<ApiKeyAuthenticationOptions>(options, logger, encoder)
 {
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (!Request.Headers.TryGetValue(Options.HeaderName, out var headerValue))
-            return Task.FromResult(AuthenticateResult.NoResult());
+            return AuthenticateResult.NoResult();
 
-        var providedBytes = Encoding.UTF8.GetBytes(headerValue.ToString());
-        var expectedBytes = Encoding.UTF8.GetBytes(Options.ApiKey);
+        var providedHash = ApiKeyHasher.Hash(headerValue.ToString());
+        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t =>
+            t.ApiKeyHash == providedHash
+        );
 
-        if (providedBytes.Length != expectedBytes.Length ||
-            !CryptographicOperations.FixedTimeEquals(providedBytes, expectedBytes))
-            return Task.FromResult(AuthenticateResult.Fail("Invalid API key"));
+        if (tenant is null)
+            return AuthenticateResult.Fail("Invalid API key");
 
-        var claims = new[] { new Claim(ClaimTypes.Name, "ApiKeyClient") };
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.Name, "ApiKeyClient"),
+            new Claim(TenantClaims.TenantId, tenant.Id.ToString()),
+        };
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name);
 
-        return Task.FromResult(AuthenticateResult.Success(ticket));
+        return AuthenticateResult.Success(ticket);
     }
 }

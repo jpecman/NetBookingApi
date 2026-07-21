@@ -4,6 +4,7 @@ using BookingApi.Domain.Gateways;
 using BookingApi.Infrastructure;
 using BookingApi.Infrastructure.DbEntities;
 using BookingApi.Infrastructure.Gateways;
+using BookingApi.Infrastructure.Tenancy;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +21,8 @@ public abstract class BookingApiTestBase
 
     private ServiceProvider _provider = null!;
 
+    protected TestCurrentTenant CurrentTenant { get; private set; } = null!;
+
     protected BookingController Controller => Resolve<BookingController>();
 
     protected T Resolve<T>()
@@ -28,8 +31,11 @@ public abstract class BookingApiTestBase
     [TestInitialize]
     public async Task BaseInitializeAsync()
     {
+        CurrentTenant = new TestCurrentTenant();
+
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton<ICurrentTenant>(CurrentTenant);
         services.AddDbContext<BookingApiDbContext>(o =>
             o.UseNpgsql(PostgresAssemblyFixture.ConnectionString)
         );

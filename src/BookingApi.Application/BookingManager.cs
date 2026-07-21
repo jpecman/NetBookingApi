@@ -17,6 +17,10 @@ public interface IBookingManager
 
     Task<Either<Error, Booking>> CreateCampAsync(CreateCampBookingCommand command);
 
+    Task<Either<Error, Booking>> UpdateAsync(UpdateBookingCommand command);
+
+    Task<Either<Error, Booking>> UpdateSessionAsync(UpdateSessionCommand command);
+
     Task<Either<Error, Booking>> GetAsync(Guid id);
 
     Task<Either<Error, Booking[]>> GetAsync(BookingSearch search);
@@ -112,6 +116,37 @@ public class BookingManager : IBookingManager
                 );
             },
             err => err
+        );
+    }
+
+    public Task<Either<Error, Booking>> UpdateAsync(UpdateBookingCommand command)
+    {
+        if (string.IsNullOrWhiteSpace(command.Name))
+        {
+            return Task.FromResult<Either<Error, Booking>>(
+                new Error(ErrorType.Invalid, "Booking name must not be empty")
+            );
+        }
+
+        return _bookingGateway.UpdateAsync(command.Id, command.Name, command.ContactId);
+    }
+
+    public Task<Either<Error, Booking>> UpdateSessionAsync(UpdateSessionCommand command)
+    {
+        if (command.NewFrom >= command.NewTo)
+        {
+            return Task.FromResult<Either<Error, Booking>>(
+                new Error(ErrorType.Invalid, "Session start must be before its end")
+            );
+        }
+
+        return _bookingGateway.UpdateSessionAsync(
+            command.BookingId,
+            command.CurrentFrom,
+            command.CurrentTo,
+            command.NewFrom,
+            command.NewTo,
+            command.Price
         );
     }
 

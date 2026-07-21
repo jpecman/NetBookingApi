@@ -14,6 +14,8 @@ namespace BookingApi.Domain.Entities
         decimal Price,
         Guid PitchId,
         SlotStatus Status = SlotStatus.Booked,
-        string? CancellationReason = null
+        string? CancellationReason = null,
+        // Set when loaded from the database; default (empty) on not-yet-persisted slots.
+        Guid BookingId = default
     );
 }

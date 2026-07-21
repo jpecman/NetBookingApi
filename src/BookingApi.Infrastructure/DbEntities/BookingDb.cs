@@ -1,4 +1,5 @@
 using BookingApi.Domain.Entities;
+using BookingApi.Infrastructure.Tenancy;
 using LanguageExt;
 using NpgsqlTypes;
 using System;
@@ -12,9 +13,11 @@ using System.Threading.Tasks;
 
 namespace BookingApi.Infrastructure.DbEntities
 {
-    public class BookingDb
+    public class BookingDb : ITenantOwned
     {
         public Guid Id { get; set; }
+
+        public Guid TenantId { get; set; }
 
         public string Name { get; set; } = null!;
 

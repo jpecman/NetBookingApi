@@ -1,4 +1,5 @@
 using BookingApi.Domain.Entities;
+using BookingApi.Infrastructure.Tenancy;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
@@ -10,9 +11,11 @@ using System.Threading.Tasks;
 
 namespace BookingApi.Infrastructure.DbEntities
 {
-    public class SlotDb
+    public class SlotDb : ITenantOwned
     {
         public Guid Id { get; set; }
+
+        public Guid TenantId { get; set; }
 
         public string Name { get; set; } = null!;
 
@@ -53,7 +56,8 @@ namespace BookingApi.Infrastructure.DbEntities
                 entity.Price,
                 entity.PitchId,
                 entity.Status,
-                entity.CancellationReason
+                entity.CancellationReason,
+                entity.BookingId
             );
         }
 

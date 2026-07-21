@@ -3,12 +3,15 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 using BookingApi.Domain.Entities;
+using BookingApi.Infrastructure.Tenancy;
 
 namespace BookingApi.Infrastructure.DbEntities;
 
-public class PitchDb
+public class PitchDb : ITenantOwned
 {
     public Guid Id { get; set; }
+
+    public Guid TenantId { get; set; }
 
     public string Name { get; set; } = null!;
 

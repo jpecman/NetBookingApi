@@ -1,4 +1,5 @@
 ﻿using BookingApi.Infrastructure;
+using BookingApi.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookingApi.Utils
@@ -19,7 +20,10 @@ namespace BookingApi.Utils
 
                 var options = builder.UseNpgsql(connectionString).Options;
 
-                BookingApiDbContext dbContext = new BookingApiDbContext(options);
+                BookingApiDbContext dbContext = new BookingApiDbContext(
+                    options,
+                    new DefaultCurrentTenant()
+                );
 
                 // dbContext.Fields.Add(new Infrastructure.DbEntities.FieldDb { Name = "Borovany Hlavni hriste" });
                 // dbContext.Contacts.Add(new Infrastructure.DbEntities.ContactDb { FirstName = "John", LastName = "Doe", Email = "john.doe@example.com", Phone = "123 456 789"});

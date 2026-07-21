@@ -7,6 +7,7 @@ using BookingApi.Infrastructure;
 using BookingApi.Infrastructure.DbEntities;
 using BookingApi.Infrastructure.Gateways;
 using BookingApi.Infrastructure.Services.LoginService;
+using BookingApi.Infrastructure.Tenancy;
 
 using BookingApi.Auth;
 
@@ -30,9 +31,12 @@ public class Program
         var signingKey =
             configuration["SIGNING_KEY"]
             ?? throw new InvalidOperationException("SIGNING_KEY is not configured");
-        var apiKey = configuration["API_KEY"];
 
-        IdentityBuilder identityBuilder = builder.Services.AddIdentityCore<ApplicationUser>();
+        IdentityBuilder identityBuilder = builder.Services.AddIdentityCore<ApplicationUser>(
+            // Longer minimum than the Identity default; mirrored in the PasswordRules
+            // component of both SPAs — keep them in sync.
+            options => options.Password.RequiredLength = 10
+        );
         identityBuilder.AddRoles<IdentityRole>();
         identityBuilder.AddRoleValidator<RoleValidator<IdentityRole>>();
         identityBuilder.AddRoleManager<RoleManager<IdentityRole>>();
@@ -68,7 +72,7 @@ public class Program
             })
             .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
                 ApiKeyAuthenticationOptions.Scheme,
-                options => options.ApiKey = apiKey ?? string.Empty
+                _ => { }
             );
 
         builder.Services.AddAuthorization(options =>
@@ -87,6 +91,9 @@ public class Program
             configuration["CONNECTION_STRING"]
             ?? throw new InvalidOperationException("CONNECTION_STRING is not configured");
 
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<ICurrentTenant, ClaimsCurrentTenant>();
+
         builder.Services.AddDbContext<BookingApiDbContext>(options =>
         {
             options.UseNpgsql(connectionString);
@@ -102,6 +109,7 @@ public class Program
         builder.Services.AddScoped<ISlotGateway, SlotGateway>();
         builder.Services.AddScoped<IContactGateway, ContactGateway>();
         builder.Services.AddScoped<IUserGateway, UserGateway>();
+        builder.Services.AddScoped<ITenantGateway, TenantGateway>();
         builder.Services.AddScoped<ILoginService, LoginService>();
 
         builder.Services.AddSingleton(new LoginServiceOptions() { SigningKey = signingKey });
@@ -116,7 +124,7 @@ public class Program
         }
 
         app.UseCors(options => options
-            .WithOrigins("http://localhost:5173")
+            .WithOrigins("http://localhost:5173", "http://localhost:5174")
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials());
@@ -132,6 +140,7 @@ app.UseHttpsRedirection();
 
         await MigrateDatabaseAsync(scope);
         await EnsureRolesAndAdminAccountAsync(scope, configuration);
+        await EnsureDefaultTenantApiKeyAsync(scope, configuration);
         await SeedDataAsync(scope);
 
         app.Run();
@@ -150,6 +159,7 @@ app.UseHttpsRedirection();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         ILogger logger = loggerFactory.CreateLogger<Program>();
 
+        await CreateRoleIfNeededAsync(logger, roleManager, UserRoles.SuperAdmin);
         await CreateRoleIfNeededAsync(logger, roleManager, UserRoles.Administrator);
         await CreateRoleIfNeededAsync(logger, roleManager, UserRoles.Content);
 
@@ -181,12 +191,63 @@ app.UseHttpsRedirection();
                     logger.LogError("Failed to add user {AdminEmail} to Administrators", adminEmail);
                 }
             }
+
+            // The seeded admin is also the platform operator.
+            if (!await userManager.IsInRoleAsync(user, UserRoles.SuperAdmin))
+            {
+                await userManager.AddToRoleAsync(user, UserRoles.SuperAdmin);
+            }
+
+            await EnsureAdminMembershipAsync(scope, user);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to add user {AdminEmail} to Administrators", adminEmail);
         }
 
+    }
+
+    // The API_KEY env var stays authoritative for the default tenant's key until
+    // key management moves to the admin app; other tenants get keys there.
+    private static async Task EnsureDefaultTenantApiKeyAsync(
+        IServiceScope scope,
+        ConfigurationManager configuration
+    )
+    {
+        var apiKey = configuration["API_KEY"];
+
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            return;
+        }
+
+        var db = scope.ServiceProvider.GetRequiredService<BookingApiDbContext>();
+        var tenant = await db.Tenants.FirstAsync(t => t.Id == TenantDb.DefaultTenantId);
+        var hash = ApiKeyHasher.Hash(apiKey);
+
+        if (tenant.ApiKeyHash != hash)
+        {
+            tenant.ApiKeyHash = hash;
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private static async Task EnsureAdminMembershipAsync(IServiceScope scope, ApplicationUser user)
+    {
+        var db = scope.ServiceProvider.GetRequiredService<BookingApiDbContext>();
+
+        if (!await db.TenantMemberships.AnyAsync(m => m.UserId == user.Id))
+        {
+            db.TenantMemberships.Add(
+                new TenantMembershipDb
+                {
+                    UserId = user.Id,
+                    TenantId = TenantDb.DefaultTenantId,
+                    Role = UserRoles.Administrator,
+                }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     private static async Task SeedDataAsync(IServiceScope scope)

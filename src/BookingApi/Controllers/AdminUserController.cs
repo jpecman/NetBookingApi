@@ -43,31 +43,4 @@ public class AdminUserController(IUserGateway userGateway, ILogger<AdminUserCont
         var result = await userGateway.DeleteAsync(id);
         return result.Match<ActionResult>(_ => NoContent(), HandleError);
     }
-
-    [HttpGet("{id}/roles")]
-    public async Task<ActionResult<string[]>> GetRolesAsync([FromRoute] string id)
-    {
-        var result = await userGateway.GetRolesAsync(id);
-        return HandleResponse(result, roles => roles);
-    }
-
-    [HttpPost("{id}/roles/{roleName}")]
-    public async Task<ActionResult> AddToRoleAsync(
-        [FromRoute] string id,
-        [FromRoute] string roleName
-    )
-    {
-        var result = await userGateway.AddToRoleAsync(id, roleName);
-        return result.Match<ActionResult>(_ => NoContent(), HandleError);
-    }
-
-    [HttpDelete("{id}/roles/{roleName}")]
-    public async Task<ActionResult> RemoveFromRoleAsync(
-        [FromRoute] string id,
-        [FromRoute] string roleName
-    )
-    {
-        var result = await userGateway.RemoveFromRoleAsync(id, roleName);
-        return result.Match<ActionResult>(_ => NoContent(), HandleError);
-    }
 }

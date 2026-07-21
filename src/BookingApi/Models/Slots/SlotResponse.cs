@@ -11,6 +11,7 @@ namespace BookingApi.Models.Slots
         DateTime To,
         decimal Price,
         Guid PitchId,
+        Guid BookingId,
         SlotStatus Status,
         string? CancellationReason
     );
@@ -27,6 +28,7 @@ public static class SlotsExtensions
             s.To,
             s.Price,
             s.PitchId,
+            s.BookingId,
             s.Status,
             s.CancellationReason
         );

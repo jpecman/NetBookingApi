@@ -48,6 +48,9 @@ namespace BookingApi.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -100,6 +103,9 @@ namespace BookingApi.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -109,6 +115,8 @@ namespace BookingApi.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ContactId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("Bookings");
                 });
@@ -121,22 +129,29 @@ namespace BookingApi.Infrastructure.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Phone")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<bool>("Show")
                         .HasColumnType("boolean");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
 
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
@@ -145,6 +160,12 @@ namespace BookingApi.Infrastructure.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "Email")
+                        .IsUnique()
+                        .HasFilter("\"Email\" <> ''");
 
                     b.ToTable("Contacts");
                 });
@@ -159,6 +180,9 @@ namespace BookingApi.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -166,6 +190,8 @@ namespace BookingApi.Infrastructure.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("Fields");
                 });
@@ -183,9 +209,14 @@ namespace BookingApi.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("FieldId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("Pitches");
                 });
@@ -218,6 +249,9 @@ namespace BookingApi.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -230,7 +264,67 @@ namespace BookingApi.Infrastructure.Migrations
 
                     b.HasIndex("PitchId");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("Slots");
+                });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.TenantDb", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApiKeyHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApiKeyHash")
+                        .IsUnique();
+
+                    b.ToTable("Tenants");
+                });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.TenantMembershipDb", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("UserId", "TenantId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("TenantMemberships");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -373,7 +467,31 @@ namespace BookingApi.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("BookingApi.Infrastructure.DbEntities.TenantDb", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Contact");
+                });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.ContactDb", b =>
+                {
+                    b.HasOne("BookingApi.Infrastructure.DbEntities.TenantDb", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.FieldDb", b =>
+                {
+                    b.HasOne("BookingApi.Infrastructure.DbEntities.TenantDb", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.PitchDb", b =>
@@ -382,6 +500,12 @@ namespace BookingApi.Infrastructure.Migrations
                         .WithMany("Pitches")
                         .HasForeignKey("FieldId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BookingApi.Infrastructure.DbEntities.TenantDb", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Field");
@@ -401,9 +525,30 @@ namespace BookingApi.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("BookingApi.Infrastructure.DbEntities.TenantDb", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Booking");
 
                     b.Navigation("Pitch");
+                });
+
+            modelBuilder.Entity("BookingApi.Infrastructure.DbEntities.TenantMembershipDb", b =>
+                {
+                    b.HasOne("BookingApi.Infrastructure.DbEntities.TenantDb", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BookingApi.Infrastructure.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

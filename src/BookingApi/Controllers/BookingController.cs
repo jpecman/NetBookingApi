@@ -28,6 +28,28 @@ public class BookingController(ILogger<BookingController> logger, IBookingManage
         return HandleResponse(createResponse, x => x.ToResponse());
     }
 
+    [HttpPut("{id}")]
+    public async Task<ActionResult<BookingResponse>> PutAsync(
+        [FromRoute] Guid id,
+        [FromBody] UpdateBookingRequest request
+    )
+    {
+        var updateResponse = await _bookingManager.UpdateAsync(request.ToDomain(id));
+
+        return HandleResponse(updateResponse, x => x.ToResponse());
+    }
+
+    [HttpPut("{id}/sessions")]
+    public async Task<ActionResult<BookingResponse>> PutSessionAsync(
+        [FromRoute] Guid id,
+        [FromBody] UpdateSessionRequest request
+    )
+    {
+        var updateResponse = await _bookingManager.UpdateSessionAsync(request.ToDomain(id));
+
+        return HandleResponse(updateResponse, x => x.ToResponse());
+    }
+
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteAsync(
         [FromRoute] Guid id,

@@ -26,7 +26,12 @@ namespace BookingApi.Infrastructure.Gateways
                 return CreateErrorResponse<Result>(invEx, ErrorType.NotFound);
             }
             catch (DbUpdateException dbEx)
-                when (dbEx.InnerException is PostgresException { SqlState: "23P01" })
+                when (dbEx.InnerException is PostgresException
+                    {
+                        SqlState: PostgresErrorCodes.ExclusionViolation
+                            or PostgresErrorCodes.UniqueViolation
+                    }
+                )
             {
                 return CreateErrorResponse<Result>(dbEx, ErrorType.Conflict);
             }

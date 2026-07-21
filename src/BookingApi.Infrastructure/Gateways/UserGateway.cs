@@ -1,6 +1,8 @@
 using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
 using BookingApi.Domain.Gateways;
+using BookingApi.Infrastructure.DbEntities;
+using BookingApi.Infrastructure.Tenancy;
 
 using LanguageExt;
 
@@ -11,9 +13,13 @@ using static LanguageExt.Prelude;
 
 namespace BookingApi.Infrastructure.Gateways;
 
-// DbContext is used directly for read queries because the Identity API (UserManager, RoleManager)
-// only supports single-entity operations, which leads to N+1 queries when loading users with roles.
-public class UserGateway(UserManager<ApplicationUser> userManager, BookingApiDbContext dbContext) : Gateway, IUserGateway
+// DbContext is used directly for read queries because the Identity API (UserManager)
+// only supports single-entity operations.
+public class UserGateway(
+    UserManager<ApplicationUser> userManager,
+    BookingApiDbContext dbContext,
+    ICurrentTenant currentTenant
+) : Gateway, IUserGateway
 {
     public async Task<Either<Error, User[]>> GetAllAsync()
     {
@@ -50,7 +56,13 @@ public class UserGateway(UserManager<ApplicationUser> userManager, BookingApiDbC
     {
         try
         {
-            var user = new ApplicationUser { UserName = userName, Email = email };
+            // The admin chose this password, so the user must replace it at first login.
+            var user = new ApplicationUser
+            {
+                UserName = userName,
+                Email = email,
+                MustChangePassword = true,
+            };
             var result = await userManager.CreateAsync(user, password);
 
             if (!result.Succeeded)
@@ -58,6 +70,16 @@ public class UserGateway(UserManager<ApplicationUser> userManager, BookingApiDbC
                 var message = string.Join("; ", result.Errors.Select(e => e.Description));
                 return Left(new Error(ErrorType.Invalid, message));
             }
+
+            dbContext.TenantMemberships.Add(
+                new TenantMembershipDb
+                {
+                    UserId = user.Id,
+                    TenantId = currentTenant.TenantId,
+                    Role = UserRoles.Content,
+                }
+            );
+            await dbContext.SaveChangesAsync();
 
             return Right(new User(user.Id, user.UserName ?? string.Empty, user.Email ?? string.Empty, []));
         }
@@ -71,7 +93,10 @@ public class UserGateway(UserManager<ApplicationUser> userManager, BookingApiDbC
     {
         try
         {
-            var user = await userManager.FindByIdAsync(id);
+            var isMember = await dbContext.TenantMemberships.AnyAsync(m =>
+                m.UserId == id && m.TenantId == currentTenant.TenantId
+            );
+            var user = isMember ? await userManager.FindByIdAsync(id) : null;
 
             if (user is null)
             {
@@ -94,95 +119,25 @@ public class UserGateway(UserManager<ApplicationUser> userManager, BookingApiDbC
         }
     }
 
-    public async Task<Either<Error, string[]>> GetRolesAsync(string userId)
-    {
-        try
-        {
-            var user = await userManager.FindByIdAsync(userId);
-
-            if (user is null)
-            {
-                return Left(new Error(ErrorType.NotFound, $"User {userId} not found."));
-            }
-
-            var roles = await userManager.GetRolesAsync(user);
-            return Right(roles.ToArray());
-        }
-        catch (Exception ex)
-        {
-            return CreateErrorResponse<string[]>(ex, ErrorType.General);
-        }
-    }
-
-    public async Task<Either<Error, bool>> AddToRoleAsync(string userId, string roleName)
-    {
-        try
-        {
-            var user = await userManager.FindByIdAsync(userId);
-
-            if (user is null)
-            {
-                return Left(new Error(ErrorType.NotFound, $"User {userId} not found."));
-            }
-
-            var result = await userManager.AddToRoleAsync(user, roleName);
-
-            if (!result.Succeeded)
-            {
-                var message = string.Join("; ", result.Errors.Select(e => e.Description));
-                return Left(new Error(ErrorType.Invalid, message));
-            }
-
-            return Right(true);
-        }
-        catch (Exception ex)
-        {
-            return CreateErrorResponse<bool>(ex, ErrorType.General);
-        }
-    }
-
+    // Scoped to the acting tenant via the membership join; the membership role
+    // is the user's single effective role.
     private async Task<User[]> QueryUsersAsync(IQueryable<ApplicationUser> query)
     {
         var data = await query
-            .Select(u => new
-            {
-                u.Id,
-                u.UserName,
-                u.Email,
-                Roles = dbContext.UserRoles
-                    .Where(ur => ur.UserId == u.Id)
-                    .Join(dbContext.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name!)
-                    .ToArray()
-            })
+            .Join(
+                dbContext.TenantMemberships.Where(m => m.TenantId == currentTenant.TenantId),
+                u => u.Id,
+                m => m.UserId,
+                (u, m) => new
+                {
+                    u.Id,
+                    u.UserName,
+                    u.Email,
+                    m.Role,
+                }
+            )
             .ToListAsync();
 
-        return data.Select(u => new User(u.Id, u.UserName ?? string.Empty, u.Email ?? string.Empty, u.Roles)).ToArray();
-    }
-
-    public async Task<Either<Error, bool>> RemoveFromRoleAsync(string userId, string roleName)
-    {
-        try
-        {
-            var user = await userManager.FindByIdAsync(userId);
-
-            if (user is null)
-            {
-                return Left(new Error(ErrorType.NotFound, $"User {userId} not found."));
-            }
-
-            var result = await userManager.RemoveFromRoleAsync(user, roleName);
-
-            if (!result.Succeeded)
-            {
-                var message = string.Join("; ", result.Errors.Select(e => e.Description));
-                return Left(new Error(ErrorType.Invalid, message));
-            }
-
-            return Right(true);
-        }
-        catch (Exception ex)
-        {
-            return CreateErrorResponse<bool>(ex, ErrorType.General);
-        }
+        return data.Select(u => new User(u.Id, u.UserName ?? string.Empty, u.Email ?? string.Empty, [u.Role])).ToArray();
     }
 }

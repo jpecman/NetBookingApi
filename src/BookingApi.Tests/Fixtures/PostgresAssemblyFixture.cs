@@ -1,4 +1,5 @@
 using BookingApi.Infrastructure;
+using BookingApi.Infrastructure.Tenancy;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -27,7 +28,7 @@ public class PostgresAssemblyFixture
         ConnectionString = _container.GetConnectionString();
 
         var options = new DbContextOptionsBuilder().UseNpgsql(ConnectionString).Options;
-        await using var dbContext = new BookingApiDbContext(options);
+        await using var dbContext = new BookingApiDbContext(options, new DefaultCurrentTenant());
         await dbContext.Database.MigrateAsync();
     }
 

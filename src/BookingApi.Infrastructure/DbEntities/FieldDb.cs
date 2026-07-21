@@ -1,4 +1,5 @@
 ﻿using BookingApi.Domain.Entities;
+using BookingApi.Infrastructure.Tenancy;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -9,9 +10,11 @@ using System.Threading.Tasks;
 
 namespace BookingApi.Infrastructure.DbEntities
 {
-    public class FieldDb
+    public class FieldDb : ITenantOwned
     {
         public Guid Id { get; set; }
+
+        public Guid TenantId { get; set; }
 
         public string Name { get; set; } = null!;
 
