@@ -7,6 +7,8 @@ using BookingApi.Domain.Search;
 
 using LanguageExt;
 
+using Microsoft.Extensions.Logging;
+
 using static LanguageExt.Prelude;
 
 namespace BookingApi.Application;
@@ -35,16 +37,19 @@ public class BookingManager : IBookingManager
     private readonly IBookingGateway _bookingGateway;
     private readonly IFieldGateway _fieldGateway;
     private readonly ISlotGateway _slotGateway;
+    private readonly ILogger<BookingManager> _logger;
 
     public BookingManager(
         IBookingGateway bookingGateway,
         IFieldGateway fieldGateway,
-        ISlotGateway slotGateway
+        ISlotGateway slotGateway,
+        ILogger<BookingManager> logger
     )
     {
         _bookingGateway = bookingGateway;
         _fieldGateway = fieldGateway;
         _slotGateway = slotGateway;
+        _logger = logger;
     }
 
     public async Task<Either<Error, Booking>> CreateAsync(CreateSingleBookingCommand command)
@@ -74,12 +79,41 @@ public class BookingManager : IBookingManager
                             slots
                         );
                         var newBooking = await _bookingGateway.CreateAsync(booking);
+
+                        newBooking.IfRight(
+                            b =>
+                                _logger.LogInformation(
+                                    "Created booking {BookingId} for contact {ContactId} on field {FieldId} with {SlotCount} slots",
+                                    b.Id,
+                                    command.ContactId,
+                                    command.FieldId,
+                                    slots.Count
+                                )
+                        );
+                        newBooking.IfLeft(
+                            err =>
+                                _logger.LogWarning(
+                                    "Failed to persist booking for contact {ContactId} on field {FieldId}: {Error}",
+                                    command.ContactId,
+                                    command.FieldId,
+                                    err.Message
+                                )
+                        );
+
                         return newBooking.Match<Either<Error, Booking>>(b => b, err => err);
                     },
                     err => err
                 );
             },
-            err => err
+            err =>
+            {
+                _logger.LogWarning(
+                    "Field {FieldId} not found for booking creation: {Error}",
+                    command.FieldId,
+                    err.Message
+                );
+                return err;
+            }
         );
     }
 
@@ -110,37 +144,96 @@ public class BookingManager : IBookingManager
                             slots
                         );
                         var newBooking = await _bookingGateway.CreateAsync(booking);
+
+                        newBooking.IfRight(
+                            b =>
+                                _logger.LogInformation(
+                                    "Created camp booking {BookingId} for contact {ContactId} on field {FieldId} with {SlotCount} slots",
+                                    b.Id,
+                                    command.ContactId,
+                                    command.FieldId,
+                                    slots.Count
+                                )
+                        );
+                        newBooking.IfLeft(
+                            err =>
+                                _logger.LogWarning(
+                                    "Failed to persist camp booking for contact {ContactId} on field {FieldId}: {Error}",
+                                    command.ContactId,
+                                    command.FieldId,
+                                    err.Message
+                                )
+                        );
+
                         return newBooking.Match<Either<Error, Booking>>(b => b, err => err);
                     },
                     err => err
                 );
             },
-            err => err
+            err =>
+            {
+                _logger.LogWarning(
+                    "Field {FieldId} not found for camp booking creation: {Error}",
+                    command.FieldId,
+                    err.Message
+                );
+                return err;
+            }
         );
     }
 
-    public Task<Either<Error, Booking>> UpdateAsync(UpdateBookingCommand command)
+    public async Task<Either<Error, Booking>> UpdateAsync(UpdateBookingCommand command)
     {
         if (string.IsNullOrWhiteSpace(command.Name))
         {
-            return Task.FromResult<Either<Error, Booking>>(
-                new Error(ErrorType.Invalid, "Booking name must not be empty")
+            _logger.LogWarning(
+                "Rejected update for booking {BookingId}: name must not be empty",
+                command.Id
             );
+            return new Error(ErrorType.Invalid, "Booking name must not be empty");
         }
 
-        return _bookingGateway.UpdateAsync(command.Id, command.Name, command.ContactId);
+        var result = await _bookingGateway.UpdateAsync(
+            command.Id,
+            command.Name,
+            command.ContactId
+        );
+
+        result.IfRight(
+            b =>
+                _logger.LogInformation(
+                    "Updated booking {BookingId}: name={Name}, contact={ContactId}",
+                    b.Id,
+                    command.Name,
+                    command.ContactId
+                )
+        );
+        result.IfLeft(
+            err =>
+                _logger.LogWarning(
+                    "Failed to update booking {BookingId}: {Error}",
+                    command.Id,
+                    err.Message
+                )
+        );
+
+        return result;
     }
 
-    public Task<Either<Error, Booking>> UpdateSessionAsync(UpdateSessionCommand command)
+    public async Task<Either<Error, Booking>> UpdateSessionAsync(UpdateSessionCommand command)
     {
         if (command.NewFrom >= command.NewTo)
         {
-            return Task.FromResult<Either<Error, Booking>>(
-                new Error(ErrorType.Invalid, "Session start must be before its end")
+            _logger.LogWarning(
+                "Rejected session update for booking {BookingId}: start {NewFrom} is not before end {NewTo}",
+                command.BookingId,
+                command.NewFrom,
+                command.NewTo
             );
+            return new Error(ErrorType.Invalid, "Session start must be before its end");
         }
 
-        return _bookingGateway.UpdateSessionAsync(
+        var result = await _bookingGateway.UpdateSessionAsync(
             command.BookingId,
             command.CurrentFrom,
             command.CurrentTo,
@@ -148,11 +241,52 @@ public class BookingManager : IBookingManager
             command.NewTo,
             command.Price
         );
+
+        result.IfRight(
+            b =>
+                _logger.LogInformation(
+                    "Updated session for booking {BookingId}: {CurrentFrom}-{CurrentTo} -> {NewFrom}-{NewTo}",
+                    command.BookingId,
+                    command.CurrentFrom,
+                    command.CurrentTo,
+                    command.NewFrom,
+                    command.NewTo
+                )
+        );
+        result.IfLeft(
+            err =>
+                _logger.LogWarning(
+                    "Failed to update session for booking {BookingId}: {Error}",
+                    command.BookingId,
+                    err.Message
+                )
+        );
+
+        return result;
     }
 
-    public Task<Either<Error, Unit>> CancelBookingAsync(Guid id, string? cancellationReason)
+    public async Task<Either<Error, Unit>> CancelBookingAsync(Guid id, string? cancellationReason)
     {
-        return _bookingGateway.CancelAsync(id, cancellationReason);
+        var result = await _bookingGateway.CancelAsync(id, cancellationReason);
+
+        result.IfRight(
+            _ =>
+                _logger.LogInformation(
+                    "Cancelled booking {BookingId}: {CancellationReason}",
+                    id,
+                    cancellationReason ?? "none"
+                )
+        );
+        result.IfLeft(
+            err =>
+                _logger.LogWarning(
+                    "Failed to cancel booking {BookingId}: {Error}",
+                    id,
+                    err.Message
+                )
+        );
+
+        return result;
     }
 
     public Task<Either<Error, Booking>> GetAsync(Guid id)
@@ -249,22 +383,36 @@ public class BookingManager : IBookingManager
                     );
 
                     if (misaligned)
+                    {
+                        _logger.LogWarning(
+                            "Half-field booking rejected on field {FieldId}: session at {SessionFrom} overlaps an existing booking with different start/end",
+                            field.Id,
+                            session.From
+                        );
                         return Left<Error, ImmutableList<Slot>>(
                             new Error(
                                 ErrorType.Conflict,
                                 $"Half-field booking at {session.From:g} must have the same start and end as the existing booking on this field"
                             )
                         );
+                    }
 
                     var conflicted = overlapping.Select(c => c.PitchId).ToHashSet();
                     var pitch = field.Pitches.FirstOrDefault(p => !conflicted.Contains(p.Id));
                     if (pitch is null)
+                    {
+                        _logger.LogWarning(
+                            "Half-field booking rejected on field {FieldId}: no available pitch for session at {SessionFrom}",
+                            field.Id,
+                            session.From
+                        );
                         return Left<Error, ImmutableList<Slot>>(
                             new Error(
                                 ErrorType.Conflict,
                                 $"No available pitch for session at {session.From:g}"
                             )
                         );
+                    }
 
                     slots.Add(
                         new Slot(

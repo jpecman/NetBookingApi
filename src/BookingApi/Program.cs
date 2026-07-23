@@ -16,6 +16,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
+using OpenTelemetry.Logs;
+using OpenTelemetry.Resources;
+
 
 
 namespace BookingApi;
@@ -31,6 +34,18 @@ public class Program
         var signingKey =
             configuration["SIGNING_KEY"]
             ?? throw new InvalidOperationException("SIGNING_KEY is not configured");
+
+        // OTLP endpoint/protocol come from the standard OTEL_EXPORTER_OTLP_* env vars
+        // (set in docker-compose.observability.yml).
+        builder.Logging.AddOpenTelemetry(options =>
+        {
+            options.IncludeFormattedMessage = true;
+            options.IncludeScopes = true;
+            options.SetResourceBuilder(
+                ResourceBuilder.CreateDefault().AddService(serviceName: "BookingApi")
+            );
+            options.AddOtlpExporter();
+        });
 
         IdentityBuilder identityBuilder = builder.Services.AddIdentityCore<ApplicationUser>(
             // Longer minimum than the Identity default; mirrored in the PasswordRules

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 
 using BookingApi.Common.Messaging;
 using BookingApi.Domain.Entities;
@@ -9,6 +10,7 @@ using BookingApi.Infrastructure.DbEntities;
 using LanguageExt;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 using static LanguageExt.Prelude;
 
@@ -17,10 +19,12 @@ namespace BookingApi.Infrastructure.Gateways;
 public class SlotGateway : Gateway, ISlotGateway
 {
     private readonly BookingApiDbContext _dbContext;
+    private readonly ILogger<SlotGateway> _logger;
 
-    public SlotGateway(BookingApiDbContext dbContext)
+    public SlotGateway(BookingApiDbContext dbContext, ILogger<SlotGateway> logger)
     {
         _dbContext = dbContext;
+        _logger = logger;
     }
 
     public async Task<Either<Error, Unit>> CancelAsync(Guid slotId, string? cancellationReason)
@@ -85,6 +89,7 @@ public class SlotGateway : Gateway, ISlotGateway
     {
         try
         {
+            var stopwatch = Stopwatch.StartNew();
             var slots = await _dbContext.Slots
                 .Include(s => s.Pitch)
                 .Where(
@@ -95,6 +100,15 @@ public class SlotGateway : Gateway, ISlotGateway
                         && (search.IncludeCancelled || s.Status != SlotStatus.Cancelled)
                 )
                 .ToListAsync();
+
+            _logger.LogInformation(
+                "Loaded {SlotCount} slots for field {FieldId} range {From}-{To} in {ElapsedMs}ms",
+                slots.Count,
+                search.FieldId,
+                search.From,
+                search.To,
+                stopwatch.ElapsedMilliseconds
+            );
 
             return Right(ImmutableArray.Create(slots.Select(x => x.ToDomain()).ToArray()));
         }

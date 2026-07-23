@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using NpgsqlTypes;
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 
 using static LanguageExt.Prelude;
 
@@ -144,6 +145,7 @@ namespace BookingApi.Infrastructure.Gateways
         {
             try
             {
+                var stopwatch = Stopwatch.StartNew();
                 var slots = await _dbContext.Slots
                     .Include(s => s.Booking)
                     .ThenInclude(b => b.Contact)
@@ -157,6 +159,14 @@ namespace BookingApi.Infrastructure.Gateways
                             && (search.ContactId == null || s.Booking.ContactId == search.ContactId)
                     )
                     .ToListAsync();
+
+                _logger.LogInformation(
+                    "Loaded {SlotCount} slots for calendar range {From}-{To} in {ElapsedMs}ms",
+                    slots.Count,
+                    search.From,
+                    search.To,
+                    stopwatch.ElapsedMilliseconds
+                );
 
                 var bookings = slots.Select(s => s.Booking).DistinctBy(b => b.Id);
 
