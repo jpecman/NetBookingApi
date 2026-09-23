@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
+[Route("api/v1/pitches")]
 public class PitchController(IPitchGateway pitchGateway, ILogger<PitchController> logger)
     : BaseApiController(logger)
 {

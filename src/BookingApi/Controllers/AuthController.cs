@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers
 {
+    [Route("api/v1/auth")]
     public class AuthController(ILoginService loginService, ILogger<AuthController> logger)
         : BaseApiController(logger)
     {
@@ -25,7 +26,7 @@ namespace BookingApi.Controllers
             return Ok(new UserMeResponse(id, email, roles));
         }
 
-        [HttpPut("login")]
+        [HttpPost("login")]
         [AllowAnonymous]
         public async Task<ActionResult<UserLoginResponse>> LoginAsync(
             [FromBody] UserLoginRequest request
@@ -36,7 +37,7 @@ namespace BookingApi.Controllers
             return result.Match<ActionResult>(SignIn, HandleLoginError);
         }
 
-        [HttpPut("password")]
+        [HttpPost("password")]
         [AllowAnonymous]
         public async Task<ActionResult<UserLoginResponse>> ChangePasswordAsync(
             [FromBody] UserChangePasswordRequest request
@@ -77,7 +78,7 @@ namespace BookingApi.Controllers
             return HandleError(Error.Create(ErrorType.General));
         }
 
-        [HttpPut("logout")]
+        [HttpPost("logout")]
         public ActionResult Logout()
         {
             HttpContext.Response.Cookies.Delete("token", new CookieOptions { Path = "/" });

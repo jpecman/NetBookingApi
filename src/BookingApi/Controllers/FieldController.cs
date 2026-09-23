@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
+[Route("api/v1/fields")]
 public class FieldController(IFieldGateway fieldGateway, ILogger<FieldController> logger)
     : BaseApiController(logger)
 {

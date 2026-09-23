@@ -4,16 +4,16 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
-[Route("api/v1/booking-summary")]
-public class BookingSummaryController(
-    ILogger<BookingSummaryController> logger,
+[Route("api/v1/reports")]
+public class ReportController(
+    ILogger<ReportController> logger,
     IBookingManager bookingManager
 ) : BaseApiController(logger)
 {
     private readonly IBookingManager _bookingManager = bookingManager;
 
-    [HttpGet]
-    public async Task<ActionResult<ContactBookingSummaryResponse[]>> GetAsync(
+    [HttpGet("contact-bookings")]
+    public async Task<ActionResult<ContactBookingSummaryResponse[]>> GetContactBookingsAsync(
         [FromQuery] ContactBookingSummaryRequest search
     )
     {

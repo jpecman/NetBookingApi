@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
+[Route("api/v1/bookings")]
 public class BookingController(ILogger<BookingController> logger, IBookingManager bookingManager)
     : BaseApiController(logger)
 {

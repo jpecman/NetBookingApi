@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
+[Route("api/v1/contacts")]
 public class ContactController(IContactGateway contactGateway, ILogger<ContactController> logger)
     : BaseApiController(logger)
 {

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookingApi.Controllers;
 
+[Route("api/v1/slots")]
 public class SlotController(ISlotGateway slotGateway, ILogger<SlotController> logger)
     : BaseApiController(logger)
 {
