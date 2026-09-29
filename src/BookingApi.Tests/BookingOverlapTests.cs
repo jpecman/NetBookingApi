@@ -358,7 +358,7 @@ namespace BookingApi.Tests
             var result = (await Controller.PostCampAsync(request)).Result as OkObjectResult;
             Assert.IsNotNull(result);
 
-            var booking = (BookingResponse)result.Value!;
+            var booking = ((BookingResponse[])result.Value!).Single();
             Assert.AreEqual(6, booking.Slots.Length); // 3 sessions * 2 pitches (whole field)
         }
 
@@ -463,7 +463,7 @@ namespace BookingApi.Tests
             var result = (await Controller.PostCampAsync(camp)).Result as OkObjectResult;
             Assert.IsNotNull(result);
 
-            var booking = (BookingResponse)result.Value!;
+            var booking = ((BookingResponse[])result.Value!).Single();
             var orderedSlots = booking.Slots.OrderBy(s => s.From).ToArray();
             var day1Slot = orderedSlots[0]; // day1 is chronologically first
             var day2Slot = orderedSlots[1];
@@ -512,7 +512,7 @@ namespace BookingApi.Tests
             var result = (await Controller.PostCampAsync(camp)).Result as OkObjectResult;
             Assert.IsNotNull(result);
 
-            var pitchIds = ((BookingResponse)result.Value!).Slots.Select(s => s.PitchId);
+            var pitchIds = ((BookingResponse[])result.Value!).Single().Slots.Select(s => s.PitchId);
             Assert.AreEqual(2, pitchIds.Distinct().Count());
         }
 
@@ -540,6 +540,117 @@ namespace BookingApi.Tests
 
             Assert.IsTrue(result.IsLeft);
             result.IfLeft(error => StringAssert.Contains(error.Message, "No available pitch"));
+        }
+
+        // A camp with an EndDate repeats its sessions weekly, one booking per week.
+        [TestMethod]
+        public async Task CreateCampBooking_WithEndDate_CreatesOneBookingPerWeek()
+        {
+            var from = DateTime.Now.Date;
+            var camp = new CampBookingRequest(
+                "Camp",
+                true,
+                ContactId,
+                FieldId,
+                [
+                    new SessionRequest(from.AddHours(9), 60, 500),
+                    new SessionRequest(from.AddDays(1).AddHours(9), 60, 500),
+                ],
+                from.AddDays(21).AddHours(9)
+            );
+
+            var result = (await Controller.PostCampAsync(camp)).Result as OkObjectResult;
+            Assert.IsNotNull(result);
+
+            var bookings = (BookingResponse[])result.Value!;
+            Assert.AreEqual(4, bookings.Length); // weeks 0..3
+            Assert.IsTrue(bookings.All(b => b.Slots.Length == 4)); // 2 sessions * 2 pitches
+            CollectionAssert.AreEqual(
+                Enumerable.Range(0, 4).Select(w => from.AddHours(9).AddDays(7 * w)).ToArray(),
+                bookings.Select(b => b.Slots.Min(s => s.From).ToLocalTime()).ToArray()
+            );
+        }
+
+        // A week that collides with an existing booking is skipped; the other weeks are created.
+        [TestMethod]
+        public async Task CreateCampBooking_WithEndDate_SkipsConflictingWeek()
+        {
+            var from = DateTime.Now.Date.AddHours(9);
+
+            var preExisting = new BookingRequest(
+                "PreExisting",
+                from.AddDays(7),
+                (int)BookingDurationType.OneHour,
+                1000,
+                true,
+                OtherContactId,
+                FieldId
+            );
+            Assert.IsInstanceOfType(
+                (await Controller.PostAsync(preExisting)).Result,
+                typeof(OkObjectResult)
+            );
+
+            var camp = new CampBookingRequest(
+                "Camp",
+                true,
+                ContactId,
+                FieldId,
+                [new SessionRequest(from, 60, 500)],
+                from.AddDays(14)
+            );
+
+            var result = (await Controller.PostCampAsync(camp)).Result as OkObjectResult;
+            Assert.IsNotNull(result);
+
+            var starts = ((BookingResponse[])result.Value!)
+                .Select(b => b.Slots.Min(s => s.From).ToLocalTime())
+                .ToArray();
+            CollectionAssert.AreEqual(new[] { from, from.AddDays(14) }, starts);
+        }
+
+        // If every week conflicts, the request fails with Conflict and nothing is created.
+        [TestMethod]
+        public async Task CreateCampBooking_WithEndDate_AllWeeksConflict_ReturnsConflict()
+        {
+            var from = DateTime.Now.Date.AddHours(9);
+
+            var preExisting = new BookingRequest(
+                "PreExisting",
+                from,
+                (int)BookingDurationType.OneHour,
+                1000,
+                true,
+                OtherContactId,
+                FieldId,
+                from.AddDays(14)
+            );
+            Assert.IsInstanceOfType(
+                (await Controller.PostAsync(preExisting)).Result,
+                typeof(OkObjectResult)
+            );
+
+            var camp = new CampBookingRequest(
+                "Camp",
+                true,
+                ContactId,
+                FieldId,
+                [new SessionRequest(from, 60, 500)],
+                from.AddDays(14)
+            );
+
+            var result = await Controller.PostCampAsync(camp);
+            Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
+
+            var search = new SearchBookingRequest
+            {
+                From = from.AddDays(-1),
+                To = from.AddDays(21),
+                ContactId = ContactId,
+            };
+            var searchResult = (await Controller.GetAsync(search)).Result as OkObjectResult;
+            Assert.IsNotNull(searchResult);
+            Assert.AreEqual(0, ((BookingResponse[])searchResult.Value!).Length);
         }
     }
 }

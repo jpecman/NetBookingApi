@@ -5,7 +5,8 @@ public record CreateCampBookingCommand(
     bool IsWholeField,
     Guid ContactId,
     Guid FieldId,
-    IReadOnlyList<CampSession> Sessions
+    IReadOnlyList<CampSession> Sessions,
+    DateTime? EndDate = null
 );
 
 public record CampSession(DateTime From, int Duration, decimal Price);

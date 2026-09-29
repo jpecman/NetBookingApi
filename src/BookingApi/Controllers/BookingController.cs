@@ -20,13 +20,16 @@ public class BookingController(ILogger<BookingController> logger, IBookingManage
     }
 
     [HttpPost("camp")]
-    public async Task<ActionResult<BookingResponse>> PostCampAsync(
+    public async Task<ActionResult<BookingResponse[]>> PostCampAsync(
         [FromBody] CampBookingRequest request
     )
     {
         var createResponse = await _bookingManager.CreateCampAsync(request.ToDomain());
 
-        return HandleResponse(createResponse, x => x.ToResponse());
+        return HandleResponse(
+            createResponse,
+            bookings => bookings.Select(b => b.ToResponse()).ToArray()
+        );
     }
 
     [HttpPut("{id}")]

@@ -35,7 +35,17 @@ namespace BookingApi.Infrastructure.Gateways
                 var dbEntity = b.ToEntity();
 
                 var entry = _dbContext.Bookings.Add(dbEntity);
-                await _dbContext.SaveChangesAsync();
+                try
+                {
+                    await _dbContext.SaveChangesAsync();
+                }
+                catch
+                {
+                    // Otherwise the failed booking stays tracked and is retried by the next
+                    // SaveChanges on this context (e.g. the next week of a camp booking).
+                    _dbContext.ChangeTracker.Clear();
+                    throw;
+                }
 
                 var saved = await _dbContext.Bookings
                     .Include(b => b.Contact)

@@ -17,7 +17,7 @@ public interface IBookingManager
 {
     Task<Either<Error, Booking>> CreateAsync(CreateSingleBookingCommand command);
 
-    Task<Either<Error, Booking>> CreateCampAsync(CreateCampBookingCommand command);
+    Task<Either<Error, Booking[]>> CreateCampAsync(CreateCampBookingCommand command);
 
     Task<Either<Error, Booking>> UpdateAsync(UpdateBookingCommand command);
 
@@ -115,58 +115,55 @@ public class BookingManager : IBookingManager
         );
     }
 
-    public async Task<Either<Error, Booking>> CreateCampAsync(CreateCampBookingCommand command)
+    // Creates one booking per week until EndDate. Weeks that conflict with existing bookings
+    // are skipped; any other error stops the loop (weeks created so far stay persisted).
+    public async Task<Either<Error, Booking[]>> CreateCampAsync(CreateCampBookingCommand command)
     {
         var fieldResult = await _fieldGateway.GetAsync(command.FieldId);
 
-        return await fieldResult.MatchAsync<Either<Error, Booking>>(
+        return await fieldResult.MatchAsync<Either<Error, Booking[]>>(
             async field =>
             {
-                var sessions = command.Sessions
-                    .Select(s => (s.From, To: s.From.AddMinutes(s.Duration), Price: s.Price))
-                    .ToList();
+                var created = new List<Booking>();
+                var skipped = new List<Error>();
 
-                var slotsResult = command.IsWholeField
-                    ? Right<Error, ImmutableList<Slot>>(
-                        SlotAllocation.AllocateWholeField(field, sessions, command.Name)
-                    )
-                    : await BuildHalfFieldSlotsAsync(field, sessions, command.Name);
+                foreach (var sessions in GenerateCampWeeks(command))
+                {
+                    var weekResult = await CreateCampWeekAsync(field, command, sessions);
 
-                return await slotsResult.MatchAsync<Either<Error, Booking>>(
-                    async slots =>
+                    if (weekResult.IsRight)
                     {
-                        var booking = new Booking(
-                            Guid.NewGuid(),
-                            command.Name,
-                            Contact.EmptyWithId(command.ContactId),
-                            slots
-                        );
-                        var newBooking = await _bookingGateway.CreateAsync(booking);
+                        created.Add(weekResult.RightToSeq().Head);
+                        continue;
+                    }
 
-                        newBooking.IfRight(
-                            b =>
-                                _logger.LogInformation(
-                                    "Created camp booking {BookingId} for contact {ContactId} on field {FieldId} with {SlotCount} slots",
-                                    b.Id,
-                                    command.ContactId,
-                                    command.FieldId,
-                                    slots.Count
-                                )
-                        );
-                        newBooking.IfLeft(
-                            err =>
-                                _logger.LogWarning(
-                                    "Failed to persist camp booking for contact {ContactId} on field {FieldId}: {Error}",
-                                    command.ContactId,
-                                    command.FieldId,
-                                    err.Message
-                                )
-                        );
+                    var error = weekResult.LeftToSeq().Head;
+                    if (error.ErrorType != ErrorType.Conflict)
+                        return error;
 
-                        return newBooking.Match<Either<Error, Booking>>(b => b, err => err);
-                    },
-                    err => err
+                    skipped.Add(error);
+                    _logger.LogWarning(
+                        "Skipped camp week starting {WeekStart} for contact {ContactId} on field {FieldId}: {Error}",
+                        sessions.Min(s => s.From),
+                        command.ContactId,
+                        command.FieldId,
+                        error.Message
+                    );
+                }
+
+                _logger.LogInformation(
+                    "Camp booking for contact {ContactId} on field {FieldId}: {CreatedCount} weeks created, {SkippedCount} skipped",
+                    command.ContactId,
+                    command.FieldId,
+                    created.Count,
+                    skipped.Count
                 );
+
+                // Every week conflicted; report the first week's reason.
+                if (created.Count == 0)
+                    return skipped[0];
+
+                return created.ToArray();
             },
             err =>
             {
@@ -177,6 +174,55 @@ public class BookingManager : IBookingManager
                 );
                 return err;
             }
+        );
+    }
+
+    private async Task<Either<Error, Booking>> CreateCampWeekAsync(
+        Field field,
+        CreateCampBookingCommand command,
+        List<(DateTime From, DateTime To, decimal Price)> sessions
+    )
+    {
+        var slotsResult = command.IsWholeField
+            ? Right<Error, ImmutableList<Slot>>(
+                SlotAllocation.AllocateWholeField(field, sessions, command.Name)
+            )
+            : await BuildHalfFieldSlotsAsync(field, sessions, command.Name);
+
+        return await slotsResult.MatchAsync<Either<Error, Booking>>(
+            async slots =>
+            {
+                var booking = new Booking(
+                    Guid.NewGuid(),
+                    command.Name,
+                    Contact.EmptyWithId(command.ContactId),
+                    slots
+                );
+                var newBooking = await _bookingGateway.CreateAsync(booking);
+
+                newBooking.IfRight(
+                    b =>
+                        _logger.LogInformation(
+                            "Created camp booking {BookingId} for contact {ContactId} on field {FieldId} with {SlotCount} slots",
+                            b.Id,
+                            command.ContactId,
+                            command.FieldId,
+                            slots.Count
+                        )
+                );
+                newBooking.IfLeft(
+                    err =>
+                        _logger.LogWarning(
+                            "Failed to persist camp booking for contact {ContactId} on field {FieldId}: {Error}",
+                            command.ContactId,
+                            command.FieldId,
+                            err.Message
+                        )
+                );
+
+                return newBooking.Match<Either<Error, Booking>>(b => b, err => err);
+            },
+            err => err
         );
     }
 
@@ -326,6 +372,30 @@ public class BookingManager : IBookingManager
         {
             yield return (current, current.AddMinutes(durationMinutes));
             current = current.AddDays(7);
+        }
+    }
+
+    // One session list per week: week 0 is the sessions as given, each later week shifts
+    // them all by 7 days while the first session still starts on or before EndDate.
+    private static IEnumerable<List<(DateTime From, DateTime To, decimal Price)>> GenerateCampWeeks(
+        CreateCampBookingCommand command
+    )
+    {
+        var firstFrom = command.Sessions.Min(s => s.From);
+
+        for (var week = 0; week == 0 || firstFrom.AddDays(7 * week) <= command.EndDate; week++)
+        {
+            var offset = 7 * week;
+            yield return command.Sessions
+                .Select(
+                    s =>
+                        (
+                            From: s.From.AddDays(offset),
+                            To: s.From.AddDays(offset).AddMinutes(s.Duration),
+                            s.Price
+                        )
+                )
+                .ToList();
         }
     }
 }

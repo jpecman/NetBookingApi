@@ -7,7 +7,8 @@ public record CampBookingRequest(
     bool IsWholeField,
     Guid ContactId,
     Guid FieldId,
-    IReadOnlyList<SessionRequest> Sessions
+    IReadOnlyList<SessionRequest> Sessions,
+    DateTime? EndDate = null
 );
 
 public record SessionRequest(DateTime From, int Duration, decimal Price);
@@ -21,7 +22,8 @@ public static class CampBookingRequestExtensions
             request.IsWholeField,
             request.ContactId,
             request.FieldId,
-            request.Sessions.Select(s => new CampSession(s.From, s.Duration, s.Price)).ToList()
+            request.Sessions.Select(s => new CampSession(s.From, s.Duration, s.Price)).ToList(),
+            request.EndDate
         );
     }
 }
