@@ -118,6 +118,7 @@ public class Program
         });
 
         builder.Services.AddScoped<IBookingManager, BookingManager>();
+        builder.Services.AddScoped<ISlotManager, SlotManager>();
         builder.Services.AddScoped<IBookingGateway, BookingGateway>();
         builder.Services.AddScoped<IFieldGateway, FieldGateway>();
         builder.Services.AddScoped<IPitchGateway, PitchGateway>();

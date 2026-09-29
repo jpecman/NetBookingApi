@@ -7,9 +7,8 @@ using BookingApi.Infrastructure.DbEntities;
 using LanguageExt;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.Extensions.Logging;
-
-using NpgsqlTypes;
 
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -50,84 +49,59 @@ namespace BookingApi.Infrastructure.Gateways
             return await Execute(func, booking);
         }
 
-        public async Task<Either<Error, Booking>> UpdateAsync(Guid id, string name, Guid contactId)
+        public async Task<Either<Error, Booking>> UpdateAsync(
+            Guid id,
+            string name,
+            Guid contactId,
+            bool overwriteSlotNames
+        )
         {
-            Func<Guid, Task<Booking>> func = async bId =>
+            try
             {
                 var entity = await _dbContext.Bookings
                     .Include(b => b.Slots)
-                    .FirstAsync(x => x.Id == bId);
+                    .FirstOrDefaultAsync(x => x.Id == id);
+
+                if (entity is null)
+                    return Left(new Error(ErrorType.NotFound, $"Booking {id} not found"));
 
                 if (!await _dbContext.Contacts.AnyAsync(c => c.Id == contactId))
-                    throw new InvalidOperationException($"Contact {contactId} not found");
+                    return Left(new Error(ErrorType.NotFound, $"Contact {contactId} not found"));
+
+                // Slot names are seeded from the booking name but can be edited per slot.
+                // On rename, slots still carrying the old name follow it; custom names are
+                // only replaced when the caller explicitly asks for it.
+                if (entity.Name != name)
+                {
+                    var activeSlots = entity.Slots
+                        .Where(s => s.Status != SlotStatus.Cancelled)
+                        .ToList();
+
+                    if (!overwriteSlotNames && activeSlots.Any(s => s.Name != entity.Name))
+                        return Left(
+                            new Error(
+                                ErrorType.Conflict,
+                                "Some slots have custom names; resend with overwriteSlotNames to replace them"
+                            )
+                        );
+
+                    foreach (var slot in activeSlots)
+                    {
+                        slot.Name = name;
+                    }
+                }
 
                 entity.Name = name;
                 entity.ContactId = contactId;
-                // Slot names mirror the booking name (set at creation) — keep them in sync.
-                foreach (var slot in entity.Slots)
-                {
-                    slot.Name = name;
-                }
 
                 await _dbContext.SaveChangesAsync();
 
-                return await LoadAsync(bId);
-            };
-
-            return await Execute(func, id);
-        }
-
-        public async Task<Either<Error, Booking>> UpdateSessionAsync(
-            Guid bookingId,
-            DateTime currentFrom,
-            DateTime currentTo,
-            DateTime newFrom,
-            DateTime newTo,
-            decimal price
-        )
-        {
-            Func<Guid, Task<Booking>> func = async bId =>
+                return Right(await LoadAsync(id));
+            }
+            catch (Exception ex)
             {
-                var entity = await _dbContext.Bookings
-                    .Include(b => b.Slots)
-                    .FirstAsync(x => x.Id == bId);
-
-                var utcFrom = currentFrom.ToUniversalTime();
-                var utcTo = currentTo.ToUniversalTime();
-
-                var sessionSlots = entity.Slots
-                    .Where(
-                        s =>
-                            s.Status != SlotStatus.Cancelled
-                            && s.Duration.LowerBound == utcFrom
-                            && s.Duration.UpperBound == utcTo
-                    )
-                    .ToList();
-
-                if (sessionSlots.Count == 0)
-                    throw new InvalidOperationException(
-                        $"Booking {bId} has no session from {currentFrom:g} to {currentTo:g}"
-                    );
-
-                foreach (var slot in sessionSlots)
-                {
-                    slot.Duration = new NpgsqlRange<DateTime>(
-                        newFrom.ToUniversalTime(),
-                        lowerBoundIsInclusive: true,
-                        newTo.ToUniversalTime(),
-                        upperBoundIsInclusive: false
-                    );
-                    slot.Price = price;
-                }
-
-                // Overlaps with other bookings surface here as an exclusion
-                // violation, which Execute maps to Conflict.
-                await _dbContext.SaveChangesAsync();
-
-                return await LoadAsync(bId);
-            };
-
-            return await Execute(func, bookingId);
+                return CreateErrorResponse<Booking>(ex, ErrorType.General);
+            }
         }
 
         private async Task<Booking> LoadAsync(Guid id)
@@ -211,16 +185,22 @@ namespace BookingApi.Infrastructure.Gateways
         {
             Func<Guid, Task<Booking>> func = async bId =>
             {
-                var entity = await _dbContext.Bookings
-                    .Include(b => b.Contact)
-                    .Include(b => b.Slots)
-                    .ThenInclude(s => s.Pitch)
-                    .FirstAsync(x => x.Id == bId);
+                var loadQuery = GetLoadQuery();
+
+                var entity = await loadQuery.FirstAsync(x => x.Id == bId);
 
                 return entity.ToDomain();
             };
 
             return await Execute(func, id);
+        }
+
+        private IQueryable<BookingDb> GetLoadQuery()
+        {
+            return _dbContext.Bookings
+                .Include(b => b.Contact)
+                .Include(b => b.Slots)
+                .ThenInclude(s => s.Pitch);
         }
     }
 }

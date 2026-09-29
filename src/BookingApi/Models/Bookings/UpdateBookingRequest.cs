@@ -2,32 +2,21 @@ using BookingApi.Application.Commands;
 
 namespace BookingApi.Models.Bookings;
 
-public record UpdateBookingRequest(string Name, Guid ContactId);
-
-public record UpdateSessionRequest(
-    DateTime CurrentFrom,
-    DateTime CurrentTo,
-    DateTime NewFrom,
-    DateTime NewTo,
-    decimal Price
-);
+/// <summary>
+/// Renaming a booking whose slots were given custom names fails with 409 unless
+/// <see cref="OverwriteSlotNames"/> is set.
+/// </summary>
+public record UpdateBookingRequest(string Name, Guid ContactId, bool OverwriteSlotNames = false);
 
 public static class UpdateBookingRequestExtensions
 {
     public static UpdateBookingCommand ToDomain(this UpdateBookingRequest request, Guid id)
     {
-        return new UpdateBookingCommand(id, request.Name, request.ContactId);
-    }
-
-    public static UpdateSessionCommand ToDomain(this UpdateSessionRequest request, Guid bookingId)
-    {
-        return new UpdateSessionCommand(
-            bookingId,
-            request.CurrentFrom,
-            request.CurrentTo,
-            request.NewFrom,
-            request.NewTo,
-            request.Price
+        return new UpdateBookingCommand(
+            id,
+            request.Name,
+            request.ContactId,
+            request.OverwriteSlotNames
         );
     }
 }

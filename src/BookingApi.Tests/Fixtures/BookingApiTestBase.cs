@@ -43,7 +43,9 @@ public abstract class BookingApiTestBase
         services.AddScoped<IFieldGateway, FieldGateway>();
         services.AddScoped<ISlotGateway, SlotGateway>();
         services.AddScoped<IBookingManager, BookingManager>();
+        services.AddScoped<ISlotManager, SlotManager>();
         services.AddScoped<BookingController>();
+        services.AddScoped<SlotController>();
 
         _provider = services.BuildServiceProvider();
 

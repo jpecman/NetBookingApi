@@ -30,12 +30,15 @@ namespace BookingApi.Controllers
             if (error.ErrorType == ErrorType.Conflict)
             {
                 Logger.LogWarning("{Message}", error.Message);
-                return Conflict();
+                return Conflict(SerializeError(error));
             }
 
             Logger.LogError("{Message}", error.Message);
-            return new BadRequestObjectResult(JsonSerializer.Serialize(new ErrorResponse(new []{ error.Message}), new JsonSerializerOptions() { WriteIndented = true}));
+            return new BadRequestObjectResult(SerializeError(error));
         }
+
+        private static string SerializeError(Error error) =>
+            JsonSerializer.Serialize(new ErrorResponse(new []{ error.Message}), new JsonSerializerOptions() { WriteIndented = true});
 
         protected ActionResult HandleResponse<Tin, Tout>(Either<Error, Tin> response, Func<Tin, Tout> toResponse)
         {

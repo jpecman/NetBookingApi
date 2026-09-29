@@ -12,6 +12,8 @@ using LanguageExt;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
+using NpgsqlTypes;
+
 using static LanguageExt.Prelude;
 
 namespace BookingApi.Infrastructure.Gateways;
@@ -49,7 +51,7 @@ public class SlotGateway : Gateway, ISlotGateway
     }
 
     public async Task<
-        Either<Error, IReadOnlyList<(Guid PitchId, DateTime From, DateTime To)>>
+        Either<Error, IReadOnlyList<(Guid Id, Guid PitchId, DateTime From, DateTime To)>>
     > GetExistingSlotsForDaysAsync(Guid fieldId, IReadOnlyList<DateTime> sessionDates)
     {
         try
@@ -65,6 +67,7 @@ public class SlotGateway : Gateway, ISlotGateway
                     s =>
                         new
                         {
+                            s.Id,
                             s.PitchId,
                             From = s.Duration.LowerBound,
                             To = s.Duration.UpperBound
@@ -72,13 +75,13 @@ public class SlotGateway : Gateway, ISlotGateway
                 )
                 .ToListAsync();
 
-            return Right<Error, IReadOnlyList<(Guid, DateTime, DateTime)>>(
-                candidates.Select(c => (c.PitchId, c.From, c.To)).ToList()
+            return Right<Error, IReadOnlyList<(Guid, Guid, DateTime, DateTime)>>(
+                candidates.Select(c => (c.Id, c.PitchId, c.From, c.To)).ToList()
             );
         }
         catch (Exception ex)
         {
-            return CreateErrorResponse<IReadOnlyList<(Guid, DateTime, DateTime)>>(
+            return CreateErrorResponse<IReadOnlyList<(Guid, Guid, DateTime, DateTime)>>(
                 ex,
                 ErrorType.General
             );
@@ -116,5 +119,67 @@ public class SlotGateway : Gateway, ISlotGateway
         {
             return CreateErrorResponse<ImmutableArray<Slot>>(ex, ErrorType.General);
         }
+    }
+
+    public async Task<Either<Error, ImmutableArray<(Slot Slot, Guid FieldId)>>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids
+    )
+    {
+        try
+        {
+            var entities = await _dbContext.Slots
+                .Include(s => s.Pitch)
+                .Where(s => ids.Contains(s.Id))
+                .ToListAsync();
+
+            var missing = ids.Except(entities.Select(e => e.Id)).ToList();
+            if (missing.Count > 0)
+                return Left(
+                    new Error(
+                        ErrorType.NotFound,
+                        $"Slots not found: {string.Join(", ", missing)}"
+                    )
+                );
+
+            return Right(entities.Select(e => (e.ToDomain(), e.Pitch.FieldId)).ToImmutableArray());
+        }
+        catch (Exception ex)
+        {
+            return CreateErrorResponse<ImmutableArray<(Slot, Guid)>>(ex, ErrorType.General);
+        }
+    }
+
+    public async Task<Either<Error, ImmutableArray<Slot>>> UpdateAsync(IReadOnlyList<Slot> slots)
+    {
+        Func<IReadOnlyList<Slot>, Task<ImmutableArray<Slot>>> func = async updates =>
+        {
+            var ids = updates.Select(s => s.Id).ToList();
+            var entities = await _dbContext.Slots
+                .Where(s => ids.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id);
+
+            foreach (var slot in updates)
+            {
+                if (!entities.TryGetValue(slot.Id, out var entity))
+                    throw new InvalidOperationException($"Slot {slot.Id} not found.");
+
+                entity.Name = slot.Name;
+                entity.Duration = new NpgsqlRange<DateTime>(
+                    slot.From.ToUniversalTime(),
+                    lowerBoundIsInclusive: true,
+                    slot.To.ToUniversalTime(),
+                    upperBoundIsInclusive: false
+                );
+                entity.Price = slot.Price;
+            }
+
+            // One SaveChanges = one transaction; overlaps with other slots on the same pitch
+            // surface as an exclusion violation, which Execute maps to Conflict.
+            await _dbContext.SaveChangesAsync();
+
+            return updates.Select(s => entities[s.Id].ToDomain()).ToImmutableArray();
+        };
+
+        return await Execute(func, slots);
     }
 }

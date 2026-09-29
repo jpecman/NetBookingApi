@@ -21,8 +21,6 @@ public interface IBookingManager
 
     Task<Either<Error, Booking>> UpdateAsync(UpdateBookingCommand command);
 
-    Task<Either<Error, Booking>> UpdateSessionAsync(UpdateSessionCommand command);
-
     Task<Either<Error, Booking>> GetAsync(Guid id);
 
     Task<Either<Error, Booking[]>> GetAsync(BookingSearch search);
@@ -65,7 +63,7 @@ public class BookingManager : IBookingManager
 
                 var slotsResult = command.IsWholeField
                     ? Right<Error, ImmutableList<Slot>>(
-                        BuildWholeFieldSlots(field, sessions, command.Name)
+                        SlotAllocation.AllocateWholeField(field, sessions, command.Name)
                     )
                     : await BuildHalfFieldSlotsAsync(field, sessions, command.Name);
 
@@ -130,7 +128,7 @@ public class BookingManager : IBookingManager
 
                 var slotsResult = command.IsWholeField
                     ? Right<Error, ImmutableList<Slot>>(
-                        BuildWholeFieldSlots(field, sessions, command.Name)
+                        SlotAllocation.AllocateWholeField(field, sessions, command.Name)
                     )
                     : await BuildHalfFieldSlotsAsync(field, sessions, command.Name);
 
@@ -196,7 +194,8 @@ public class BookingManager : IBookingManager
         var result = await _bookingGateway.UpdateAsync(
             command.Id,
             command.Name,
-            command.ContactId
+            command.ContactId,
+            command.OverwriteSlotNames
         );
 
         result.IfRight(
@@ -220,51 +219,6 @@ public class BookingManager : IBookingManager
         return result;
     }
 
-    public async Task<Either<Error, Booking>> UpdateSessionAsync(UpdateSessionCommand command)
-    {
-        if (command.NewFrom >= command.NewTo)
-        {
-            _logger.LogWarning(
-                "Rejected session update for booking {BookingId}: start {NewFrom} is not before end {NewTo}",
-                command.BookingId,
-                command.NewFrom,
-                command.NewTo
-            );
-            return new Error(ErrorType.Invalid, "Session start must be before its end");
-        }
-
-        var result = await _bookingGateway.UpdateSessionAsync(
-            command.BookingId,
-            command.CurrentFrom,
-            command.CurrentTo,
-            command.NewFrom,
-            command.NewTo,
-            command.Price
-        );
-
-        result.IfRight(
-            b =>
-                _logger.LogInformation(
-                    "Updated session for booking {BookingId}: {CurrentFrom}-{CurrentTo} -> {NewFrom}-{NewTo}",
-                    command.BookingId,
-                    command.CurrentFrom,
-                    command.CurrentTo,
-                    command.NewFrom,
-                    command.NewTo
-                )
-        );
-        result.IfLeft(
-            err =>
-                _logger.LogWarning(
-                    "Failed to update session for booking {BookingId}: {Error}",
-                    command.BookingId,
-                    err.Message
-                )
-        );
-
-        return result;
-    }
-
     public async Task<Either<Error, Unit>> CancelBookingAsync(Guid id, string? cancellationReason)
     {
         var result = await _bookingGateway.CancelAsync(id, cancellationReason);
@@ -279,11 +233,7 @@ public class BookingManager : IBookingManager
         );
         result.IfLeft(
             err =>
-                _logger.LogWarning(
-                    "Failed to cancel booking {BookingId}: {Error}",
-                    id,
-                    err.Message
-                )
+                _logger.LogWarning("Failed to cancel booking {BookingId}: {Error}", id, err.Message)
         );
 
         return result;
@@ -330,28 +280,6 @@ public class BookingManager : IBookingManager
         );
     }
 
-    private static ImmutableList<Slot> BuildWholeFieldSlots(
-        Field field,
-        IReadOnlyList<(DateTime From, DateTime To, decimal Price)> sessions,
-        string name
-    ) =>
-        sessions
-            .SelectMany(
-                session =>
-                    field.Pitches.Select(
-                        pitch =>
-                            new Slot(
-                                Guid.NewGuid(),
-                                name,
-                                session.From,
-                                session.To,
-                                session.Price,
-                                pitch.Id
-                            )
-                    )
-            )
-            .ToImmutableList();
-
     private async Task<Either<Error, ImmutableList<Slot>>> BuildHalfFieldSlotsAsync(
         Field field,
         IReadOnlyList<(DateTime From, DateTime To, decimal Price)> sessions,
@@ -365,70 +293,20 @@ public class BookingManager : IBookingManager
             sessionDates
         );
 
-        return candidatesResult.Match<Either<Error, ImmutableList<Slot>>>(
-            candidates =>
-            {
-                var slots = new List<Slot>();
-                foreach (var session in sessions)
-                {
-                    var sessionFrom = session.From.ToUniversalTime();
-                    var sessionTo = session.To.ToUniversalTime();
-
-                    var overlapping = candidates
-                        .Where(c => c.From < sessionTo && c.To > sessionFrom)
-                        .ToList();
-
-                    var misaligned = overlapping.Any(
-                        c => c.From != sessionFrom || c.To != sessionTo
-                    );
-
-                    if (misaligned)
-                    {
-                        _logger.LogWarning(
-                            "Half-field booking rejected on field {FieldId}: session at {SessionFrom} overlaps an existing booking with different start/end",
-                            field.Id,
-                            session.From
-                        );
-                        return Left<Error, ImmutableList<Slot>>(
-                            new Error(
-                                ErrorType.Conflict,
-                                $"Half-field booking at {session.From:g} must have the same start and end as the existing booking on this field"
-                            )
-                        );
-                    }
-
-                    var conflicted = overlapping.Select(c => c.PitchId).ToHashSet();
-                    var pitch = field.Pitches.FirstOrDefault(p => !conflicted.Contains(p.Id));
-                    if (pitch is null)
-                    {
-                        _logger.LogWarning(
-                            "Half-field booking rejected on field {FieldId}: no available pitch for session at {SessionFrom}",
-                            field.Id,
-                            session.From
-                        );
-                        return Left<Error, ImmutableList<Slot>>(
-                            new Error(
-                                ErrorType.Conflict,
-                                $"No available pitch for session at {session.From:g}"
-                            )
-                        );
-                    }
-
-                    slots.Add(
-                        new Slot(
-                            Guid.NewGuid(),
-                            name,
-                            session.From,
-                            session.To,
-                            session.Price,
-                            pitch.Id
-                        )
-                    );
-                }
-                return Right<Error, ImmutableList<Slot>>(slots.ToImmutableList());
-            },
-            err => err
+        var slotsResult = candidatesResult.Bind(
+            candidates => SlotAllocation.AllocateHalfField(field, sessions, name, candidates)
         );
+
+        slotsResult.IfLeft(
+            err =>
+                _logger.LogWarning(
+                    "Half-field booking rejected on field {FieldId}: {Error}",
+                    field.Id,
+                    err.Message
+                )
+        );
+
+        return slotsResult;
     }
 
     private static IEnumerable<(DateTime From, DateTime To)> GenerateWeeklySessions(

@@ -39,7 +39,7 @@ namespace BookingApi.Tests
             );
 
             var result = await Controller.PostAsync(overlapping);
-            Assert.IsInstanceOfType(result.Result, typeof(ConflictResult));
+            Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
         }
 
         // Two whole-field bookings where one starts exactly when the other ends both succeed
@@ -142,7 +142,7 @@ namespace BookingApi.Tests
             );
 
             var result = await Controller.PostAsync(halfField);
-            Assert.IsInstanceOfType(result.Result, typeof(ConflictResult));
+            Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
         }
 
         // A half-field booking that overlaps an existing slot with a different start/end time
@@ -230,7 +230,7 @@ namespace BookingApi.Tests
             );
 
             var result = await Controller.PostAsync(third);
-            Assert.IsInstanceOfType(result.Result, typeof(ConflictResult));
+            Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
         }
 
         // Cancelling a booking frees its pitch/time so an identical new booking can succeed.
@@ -324,7 +324,7 @@ namespace BookingApi.Tests
             );
 
             var result = await Controller.PostAsync(weekly);
-            Assert.IsInstanceOfType(result.Result, typeof(ConflictResult));
+            Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
 
             var search = new SearchBookingRequest
             {
@@ -396,7 +396,7 @@ namespace BookingApi.Tests
             );
 
             var result = await Controller.PostCampAsync(camp);
-            Assert.IsInstanceOfType(result.Result, typeof(ConflictResult));
+            Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
 
             var search = new SearchBookingRequest
             {
@@ -470,6 +470,76 @@ namespace BookingApi.Tests
 
             Assert.AreNotEqual(day1OccupiedPitchId, day1Slot.PitchId);
             Assert.AreNotEqual(day2OccupiedPitchId, day2Slot.PitchId);
+        }
+
+        // A whole-field price is split across the pitches so the slot prices sum to it.
+        [TestMethod]
+        public async Task CreateBooking_WholeField_SplitsPriceAcrossPitches()
+        {
+            var request = new BookingRequest(
+                "Split",
+                DateTime.Now.Date.AddHours(10),
+                (int)BookingDurationType.OneHour,
+                1000.01m,
+                true,
+                ContactId,
+                FieldId
+            );
+
+            var result = (await Controller.PostAsync(request)).Result as OkObjectResult;
+            Assert.IsNotNull(result);
+
+            var prices = ((BookingResponse)result.Value!).Slots.Select(s => s.Price).ToArray();
+            Assert.AreEqual(2, prices.Length);
+            Assert.AreEqual(1000.01m, prices.Sum());
+            CollectionAssert.AreEquivalent(new[] { 500.01m, 500m }, prices);
+        }
+
+        // Two half-field sessions at the same time in one camp request land on different
+        // pitches instead of both picking the first one.
+        [TestMethod]
+        public async Task CreateCampBooking_HalfField_TwoSessionsSameTime_UseBothPitches()
+        {
+            var from = DateTime.Now.Date.AddHours(10);
+            var camp = new CampBookingRequest(
+                "Camp",
+                false,
+                ContactId,
+                FieldId,
+                [new SessionRequest(from, 60, 500), new SessionRequest(from, 60, 500)]
+            );
+
+            var result = (await Controller.PostCampAsync(camp)).Result as OkObjectResult;
+            Assert.IsNotNull(result);
+
+            var pitchIds = ((BookingResponse)result.Value!).Slots.Select(s => s.PitchId);
+            Assert.AreEqual(2, pitchIds.Distinct().Count());
+        }
+
+        // A third same-time session in the same request gets a clean no-pitch error rather
+        // than a database constraint violation.
+        [TestMethod]
+        public async Task CreateCampBooking_HalfField_ThreeSessionsSameTime_ReturnsNoPitchError()
+        {
+            var bookingManager = Resolve<IBookingManager>();
+            var from = DateTime.Now.Date.AddHours(10);
+
+            var result = await bookingManager.CreateCampAsync(
+                new CreateCampBookingCommand(
+                    "Camp",
+                    false,
+                    ContactId,
+                    FieldId,
+                    [
+                        new CampSession(from, 60, 500),
+                        new CampSession(from, 60, 500),
+                        new CampSession(from, 60, 500),
+                    ]
+                )
+            );
+
+            Assert.IsTrue(result.IsLeft);
+            result.IfLeft(error => StringAssert.Contains(error.Message, "No available pitch"));
         }
     }
 }

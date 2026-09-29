@@ -15,19 +15,14 @@ namespace BookingApi.Domain.Gateways
 
         Task<Either<Error, Booking>> CreateAsync(Booking booking);
 
-        /// <summary>Updates booking metadata; the name is propagated to the
-        /// booking's slots (slot names mirror the booking name).</summary>
-        Task<Either<Error, Booking>> UpdateAsync(Guid id, string name, Guid contactId);
-
-        /// <summary>Moves/reprices one session: every non-cancelled slot of the
-        /// booking matching the current range gets the new range and price.</summary>
-        Task<Either<Error, Booking>> UpdateSessionAsync(
-            Guid bookingId,
-            DateTime currentFrom,
-            DateTime currentTo,
-            DateTime newFrom,
-            DateTime newTo,
-            decimal price
+        /// <summary>Updates booking metadata. On rename, non-cancelled slots still carrying
+        /// the old booking name follow it; if any slot has a custom name the update fails
+        /// with Conflict unless <paramref name="overwriteSlotNames"/> is set.</summary>
+        Task<Either<Error, Booking>> UpdateAsync(
+            Guid id,
+            string name,
+            Guid contactId,
+            bool overwriteSlotNames
         );
 
         Task<Either<Error, Unit>> CancelAsync(Guid bookingId, string? cancellationReason);
