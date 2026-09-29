@@ -12,6 +12,7 @@ using BookingApi.Infrastructure.Tenancy;
 using BookingApi.Auth;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -146,7 +147,21 @@ public class Program
             .AllowCredentials());
 
 #if !DEBUG
-app.UseHttpsRedirection();
+        // Behind nginx (which terminates TLS and forwards plain HTTP) the app would
+        // otherwise see every request as HTTP and redirect-loop below. Trust the proxy's
+        // headers: KnownProxies/KnownIPNetworks are cleared because the container sees
+        // nginx as the Docker bridge gateway, not loopback, so the defaults never match.
+        // Safe here - the api port is published on 127.0.0.1 only, so nginx on the same
+        // host is the only thing that can reach it.
+        var forwardedHeaders = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+        };
+        forwardedHeaders.KnownIPNetworks.Clear();
+        forwardedHeaders.KnownProxies.Clear();
+        app.UseForwardedHeaders(forwardedHeaders);
+
+        app.UseHttpsRedirection();
 #endif
         app.UseAuthorization();
 

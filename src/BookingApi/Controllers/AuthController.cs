@@ -56,7 +56,11 @@ namespace BookingApi.Controllers
                 new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = false,
+                    // Always Secure: the cookie is only ever sent over HTTPS in
+                    // production, and browsers treat localhost as a trustworthy
+                    // origin, so the dev SPAs on http://localhost:5173/5174 still
+                    // store it.
+                    Secure = true,
                     SameSite = SameSiteMode.Lax,
                     Expires = DateTimeOffset.UtcNow.AddHours(8),
                     Path = "/"
@@ -81,7 +85,18 @@ namespace BookingApi.Controllers
         [HttpPost("logout")]
         public ActionResult Logout()
         {
-            HttpContext.Response.Cookies.Delete("token", new CookieOptions { Path = "/" });
+            // The attributes have to mirror SignIn's, or the browser treats this as a
+            // different cookie and the original one survives logout.
+            HttpContext.Response.Cookies.Delete(
+                "token",
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Path = "/"
+                }
+            );
 
             return Ok();
         }
