@@ -17,6 +17,8 @@ public class PostgresAssemblyFixture
     [AssemblyInitialize]
     public static async Task InitializeAsync(TestContext _)
     {
+        ContainerRuntime.Configure();
+
         _container = new PostgreSqlBuilder("postgres:14.1-alpine")
             .WithDatabase("BookingDb")
             .WithUsername("bookaneer")
@@ -36,6 +38,6 @@ public class PostgresAssemblyFixture
     public static async Task CleanupAsync()
     {
         if (_container is not null)
-            await _container.StopAsync();
+            await _container.DisposeAsync();
     }
 }
