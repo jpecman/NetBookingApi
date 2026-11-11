@@ -66,7 +66,7 @@ namespace BookingApi.Controllers
                     Path = "/"
                 }
             );
-            return Ok(new UserLoginResponse(success.Token, success.Email, success.UserName));
+            return Ok(new UserLoginResponse(success.Email, success.UserName));
         }
 
         private ActionResult HandleLoginError(LoginError error)

@@ -136,6 +136,13 @@ namespace BookingApi.Infrastructure.Services.LoginService
                 return Left(LoginError.NoTenantMembership);
             }
 
+            // The token carries the stamp for revocation checks; a user created
+            // outside UserManager could lack one.
+            if (string.IsNullOrEmpty(user.SecurityStamp))
+            {
+                await _userManager.UpdateSecurityStampAsync(user);
+            }
+
             var isSuperAdmin = await _userManager.IsInRoleAsync(user, UserRoles.SuperAdmin);
 
             return Right(
@@ -158,6 +165,7 @@ namespace BookingApi.Infrastructure.Services.LoginService
             claims.AddClaim(new Claim(ClaimTypes.Email, user.Email ?? string.Empty));
             claims.AddClaim(new Claim(TenantClaims.TenantId, membership.TenantId.ToString()));
             claims.AddClaim(new Claim(ClaimTypes.Role, membership.Role));
+            claims.AddClaim(new Claim(LoginClaims.SecurityStamp, user.SecurityStamp!));
 
             if (isSuperAdmin)
             {

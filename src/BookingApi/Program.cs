@@ -89,6 +89,18 @@ public class Program
                     {
                         context.Token = context.Request.Cookies["token"];
                         return Task.CompletedTask;
+                    },
+                    // Revocation: reject tokens whose user, security stamp or
+                    // membership no longer match the database.
+                    OnTokenValidated = async context =>
+                    {
+                        var validator = context.HttpContext.RequestServices
+                            .GetRequiredService<TokenSessionValidator>();
+
+                        if (!await validator.IsCurrentAsync(context.Principal!))
+                        {
+                            context.Fail("Token is no longer valid.");
+                        }
                     }
                 };
             })
@@ -135,6 +147,7 @@ public class Program
         builder.Services.AddScoped<IUserGateway, UserGateway>();
         builder.Services.AddScoped<ITenantGateway, TenantGateway>();
         builder.Services.AddScoped<ILoginService, LoginService>();
+        builder.Services.AddScoped<TokenSessionValidator>();
 
         builder.Services.AddSingleton(new LoginServiceOptions() { SigningKey = signingKey });
 
