@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 
 using BookingApi.Application.Services.LoginService;
 using BookingApi.Infrastructure;
@@ -12,7 +11,6 @@ using BookingApi.Tests.Fixtures;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
 
 namespace BookingApi.Tests
 {
@@ -178,17 +176,12 @@ namespace BookingApi.Tests
             return (user, ToPrincipal(token));
         }
 
-        // Validates like the JwtBearer middleware does, including the inbound
+        // Validates with the app's own parameters, including the inbound
         // claim-type mapping (nameid -> NameIdentifier, role -> Role).
-        private static ClaimsPrincipal ToPrincipal(string token) =>
+        private ClaimsPrincipal ToPrincipal(string token) =>
             new JwtSecurityTokenHandler().ValidateToken(
                 token,
-                new TokenValidationParameters
-                {
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(SigningKey)),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                },
+                _provider.GetRequiredService<LoginServiceOptions>().CreateValidationParameters(),
                 out _
             );
     }

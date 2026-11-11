@@ -16,7 +16,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
@@ -36,6 +35,12 @@ public class Program
         var signingKey =
             configuration["SIGNING_KEY"]
             ?? throw new InvalidOperationException("SIGNING_KEY is not configured");
+
+        // HMAC-SHA256 needs a 256-bit key to be as strong as the algorithm.
+        if (Encoding.UTF8.GetByteCount(signingKey) < 32)
+            throw new InvalidOperationException("SIGNING_KEY must be at least 32 bytes");
+
+        var loginOptions = new LoginServiceOptions { SigningKey = signingKey };
 
         // OTLP endpoint/protocol come from the standard OTEL_EXPORTER_OTLP_* env vars
         // (set in docker-compose.observability.yml).
@@ -71,18 +76,8 @@ public class Program
             .AddJwtBearer(options =>
             {
                 options.RequireHttpsMetadata = false;
-
-                SecurityKey securityKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(signingKey));
-
                 options.SaveToken = true;
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = false,
-                    IssuerSigningKey = securityKey,
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ValidateLifetime = true,
-                };
+                options.TokenValidationParameters = loginOptions.CreateValidationParameters();
 
                 options.Events = new JwtBearerEvents
                 {
@@ -168,7 +163,7 @@ public class Program
         builder.Services.AddScoped<ILoginService, LoginService>();
         builder.Services.AddScoped<TokenSessionValidator>();
 
-        builder.Services.AddSingleton(new LoginServiceOptions() { SigningKey = signingKey });
+        builder.Services.AddSingleton(loginOptions);
 
         var app = builder.Build();
 

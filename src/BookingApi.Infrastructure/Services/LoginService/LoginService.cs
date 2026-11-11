@@ -175,17 +175,16 @@ namespace BookingApi.Infrastructure.Services.LoginService
             var now = DateTimeOffset.Now.UtcDateTime;
 
             var tokenHandler = new JwtSecurityTokenHandler();
-            var signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_options.SigningKey));
             var signingCredentials = new SigningCredentials(
-                signingKey,
+                _options.CreateSigningKey(),
                 SecurityAlgorithms.HmacSha256Signature
             );
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = claims,
-                Issuer = "Issuer",
-                Audience = "Audience",
+                Issuer = _options.Issuer,
+                Audience = _options.Audience,
                 NotBefore = now.Subtract(TimeSpan.FromHours(1)),
                 Expires = now.Add(_options.TokenLifetime),
                 SigningCredentials = signingCredentials
