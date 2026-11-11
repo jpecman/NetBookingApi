@@ -89,8 +89,13 @@ public class UserGateway(
         }
     }
 
-    public async Task<Either<Error, bool>> DeleteAsync(string id)
+    public async Task<Either<Error, bool>> DeleteAsync(string id, string actingUserId)
     {
+        if (id == actingUserId)
+        {
+            return Left(new Error(ErrorType.Invalid, "You can't delete your own account."));
+        }
+
         try
         {
             var isMember = await dbContext.TenantMemberships.AnyAsync(m =>
@@ -101,6 +106,11 @@ public class UserGateway(
             if (user is null)
             {
                 return Left(new Error(ErrorType.NotFound, $"User {id} not found."));
+            }
+
+            if (await userManager.IsInRoleAsync(user, UserRoles.SuperAdmin))
+            {
+                return Left(new Error(ErrorType.Invalid, "A SuperAdmin can't be deleted here."));
             }
 
             var result = await userManager.DeleteAsync(user);

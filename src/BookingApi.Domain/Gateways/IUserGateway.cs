@@ -12,5 +12,6 @@ public interface IUserGateway
     Task<Either<Error, User[]>> GetAllAsync();
     Task<Either<Error, User>> GetAsync(string id);
     Task<Either<Error, User>> CreateAsync(string userName, string email, string password);
-    Task<Either<Error, bool>> DeleteAsync(string id);
+    // Refuses self-deletion and deleting a SuperAdmin.
+    Task<Either<Error, bool>> DeleteAsync(string id, string actingUserId);
 }

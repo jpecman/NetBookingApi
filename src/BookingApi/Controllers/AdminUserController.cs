@@ -1,3 +1,5 @@
+using System.Security.Claims;
+
 using BookingApi.Domain.Gateways;
 using BookingApi.Infrastructure;
 using BookingApi.Models.Admin;
@@ -40,7 +42,12 @@ public class AdminUserController(IUserGateway userGateway, ILogger<AdminUserCont
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteAsync([FromRoute] string id)
     {
-        var result = await userGateway.DeleteAsync(id);
+        var actingUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (actingUserId is null)
+            return Unauthorized();
+
+        var result = await userGateway.DeleteAsync(id, actingUserId);
         return result.Match<ActionResult>(_ => NoContent(), HandleError);
     }
 }
