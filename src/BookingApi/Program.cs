@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 
 using BookingApi.Application;
 using BookingApi.Application.Services.LoginService;
@@ -115,6 +116,24 @@ public class Program
                     .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, ApiKeyAuthenticationOptions.Scheme)
                     .RequireAuthenticatedUser()));
 
+        // Login and password change: per client IP, against password spraying.
+        // Behind nginx the IP comes from UseForwardedHeaders.
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy("auth", context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 5,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                    }
+                )
+            );
+        });
+
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -183,6 +202,8 @@ public class Program
 
         app.UseHttpsRedirection();
 #endif
+        // After UseForwardedHeaders, so limits are per real client IP.
+        app.UseRateLimiter();
         app.UseAuthorization();
 
         app.MapControllers();

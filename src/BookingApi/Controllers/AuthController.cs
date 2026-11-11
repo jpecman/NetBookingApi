@@ -6,6 +6,7 @@ using BookingApi.Models.Users;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace BookingApi.Controllers
 {
@@ -28,6 +29,7 @@ namespace BookingApi.Controllers
 
         [HttpPost("login")]
         [AllowAnonymous]
+        [EnableRateLimiting("auth")]
         public async Task<ActionResult<UserLoginResponse>> LoginAsync(
             [FromBody] UserLoginRequest request
         )
@@ -39,6 +41,7 @@ namespace BookingApi.Controllers
 
         [HttpPost("password")]
         [AllowAnonymous]
+        [EnableRateLimiting("auth")]
         public async Task<ActionResult<UserLoginResponse>> ChangePasswordAsync(
             [FromBody] UserChangePasswordRequest request
         )
