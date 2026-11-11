@@ -36,6 +36,12 @@ public class BookingApiDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(builder);
 
+        // Identity creates EmailIndex as non-unique; back RequireUniqueEmail with
+        // a database constraint so concurrent creates can't slip a duplicate in.
+        builder.Entity<ApplicationUser>(user =>
+            user.HasIndex(u => u.NormalizedEmail).HasDatabaseName("EmailIndex").IsUnique()
+        );
+
         builder.Entity<TenantDb>(tenant =>
         {
             tenant.Property(t => t.Name).HasMaxLength(100);

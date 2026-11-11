@@ -51,7 +51,13 @@ public class Program
         IdentityBuilder identityBuilder = builder.Services.AddIdentityCore<ApplicationUser>(
             // Longer minimum than the Identity default; mirrored in the PasswordRules
             // component of both SPAs — keep them in sync.
-            options => options.Password.RequiredLength = 10
+            options =>
+            {
+                options.Password.RequiredLength = 10;
+                // Login and member lookup find users by email; a duplicate makes
+                // FindByEmailAsync throw and locks the original owner out.
+                options.User.RequireUniqueEmail = true;
+            }
         );
         identityBuilder.AddRoles<IdentityRole>();
         identityBuilder.AddRoleValidator<RoleValidator<IdentityRole>>();
