@@ -108,7 +108,8 @@ public class Program
             ?? throw new InvalidOperationException("CONNECTION_STRING is not configured");
 
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddScoped<ICurrentTenant, ClaimsCurrentTenant>();
+        builder.Services.AddScoped<ClaimsCurrentTenant>();
+        builder.Services.AddScoped<ICurrentTenant>(sp => sp.GetRequiredService<ClaimsCurrentTenant>());
 
         builder.Services.AddDbContext<BookingApiDbContext>(options =>
         {
@@ -168,6 +169,9 @@ public class Program
         app.MapControllers();
 
         using var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
+
+        // Startup runs outside any request, so pin the tenant for seeding explicitly.
+        scope.ServiceProvider.GetRequiredService<ClaimsCurrentTenant>().Use(TenantDb.DefaultTenantId);
 
         await MigrateDatabaseAsync(scope);
         await EnsureRolesAndAdminAccountAsync(scope, configuration);
