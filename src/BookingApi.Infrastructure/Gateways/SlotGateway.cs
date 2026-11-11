@@ -90,6 +90,9 @@ public class SlotGateway : Gateway, ISlotGateway
 
     public async Task<Either<Error, ImmutableArray<Slot>>> GetAsync(SlotSearch search)
     {
+        if (RangeLimits.CheckSearch(search.From, search.To) is { } rangeError)
+            return rangeError;
+
         try
         {
             var stopwatch = Stopwatch.StartNew();

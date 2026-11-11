@@ -127,6 +127,9 @@ namespace BookingApi.Infrastructure.Gateways
 
         public async Task<Either<Error, ImmutableArray<Booking>>> GetAsync(BookingSearch search)
         {
+            if (RangeLimits.CheckSearch(search.From, search.To) is { } rangeError)
+                return rangeError;
+
             try
             {
                 var stopwatch = Stopwatch.StartNew();

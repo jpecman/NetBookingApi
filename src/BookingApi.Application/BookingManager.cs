@@ -52,6 +52,15 @@ public class BookingManager : IBookingManager
 
     public async Task<Either<Error, Booking>> CreateAsync(CreateSingleBookingCommand command)
     {
+        var occurrences = RangeLimits.CountWeeklyOccurrences(command.From, command.EndDate);
+        if (occurrences > RangeLimits.MaxOccurrences)
+        {
+            return new Error(
+                ErrorType.Invalid,
+                $"A series may not exceed {RangeLimits.MaxOccurrences} sessions (requested: {occurrences})."
+            );
+        }
+
         var fieldResult = await _fieldGateway.GetAsync(command.FieldId);
 
         return await fieldResult.MatchAsync<Either<Error, Booking>>(
@@ -119,6 +128,26 @@ public class BookingManager : IBookingManager
     // are skipped; any other error stops the loop (weeks created so far stay persisted).
     public async Task<Either<Error, Booking[]>> CreateCampAsync(CreateCampBookingCommand command)
     {
+        if (command.Sessions.Count > RangeLimits.MaxSessionsPerWeek)
+        {
+            return new Error(
+                ErrorType.Invalid,
+                $"A camp may not have more than {RangeLimits.MaxSessionsPerWeek} sessions per week (requested: {command.Sessions.Count})."
+            );
+        }
+
+        var weeks = RangeLimits.CountWeeklyOccurrences(
+            command.Sessions.Min(s => s.From),
+            command.EndDate
+        );
+        if (weeks > RangeLimits.MaxOccurrences)
+        {
+            return new Error(
+                ErrorType.Invalid,
+                $"A camp may not exceed {RangeLimits.MaxOccurrences} weeks (requested: {weeks})."
+            );
+        }
+
         var fieldResult = await _fieldGateway.GetAsync(command.FieldId);
 
         return await fieldResult.MatchAsync<Either<Error, Booking[]>>(
