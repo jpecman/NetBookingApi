@@ -2,7 +2,13 @@ using System.Collections.Immutable;
 
 namespace BookingApi.Domain.Entities;
 
-public record Booking(Guid Id, string Name, Contact Contact, ImmutableList<Slot> Slots)
+public record Booking(
+    Guid Id,
+    string Name,
+    Contact Contact,
+    ImmutableList<Slot> Slots,
+    BookingType Type
+)
 {
     public DateTime From => Slots.Min(x => x.From);
 

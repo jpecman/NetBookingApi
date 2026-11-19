@@ -29,6 +29,8 @@ namespace BookingApi.Infrastructure.DbEntities
 
         public List<SlotDb> Slots { get; set; } = null!;
 
+        public BookingType Type { get; set; }
+
         [Timestamp]
         public uint Version { get; set; }
     }
@@ -42,7 +44,8 @@ namespace BookingApi.Infrastructure.DbEntities
                 entity.Id,
                 entity.Name,
                 entity.Contact.ToDomain(),
-                entity.Slots.Select(x => x.ToDomain()).ToImmutableList()
+                entity.Slots.Select(x => x.ToDomain()).ToImmutableList(),
+                entity.Type
             );
         }
 
@@ -53,7 +56,8 @@ namespace BookingApi.Infrastructure.DbEntities
                 Id = domain.Id,
                 Name = domain.Name,
                 ContactId = domain.Contact.Id,
-                Slots = domain.Slots.Select(x => x.ToEntity()).ToList()
+                Slots = domain.Slots.Select(x => x.ToEntity()).ToList(),
+                Type = domain.Type
             };
         }
     }

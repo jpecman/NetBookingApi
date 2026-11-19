@@ -133,10 +133,9 @@ namespace BookingApi.Infrastructure.Gateways
             try
             {
                 var stopwatch = Stopwatch.StartNew();
-                var slots = await _dbContext.Slots
-                    .Include(s => s.Booking)
-                    .ThenInclude(b => b.Contact)
-                    .Include(s => s.Pitch)
+                // Bookings with a slot in the window, returned with all their slots
+                // (not only those in the window).
+                var bookingIds = _dbContext.Slots
                     .Where(
                         s =>
                             s.Duration.LowerBound.ToUniversalTime() >= search.From.ToUniversalTime()
@@ -145,17 +144,27 @@ namespace BookingApi.Infrastructure.Gateways
                             && (search.IncludeCancelled || s.Status != SlotStatus.Cancelled)
                             && (search.ContactId == null || s.Booking.ContactId == search.ContactId)
                     )
+                    .Select(s => s.BookingId);
+
+                var bookings = await _dbContext.Bookings
+                    .Include(b => b.Contact)
+                    .Include(
+                        b =>
+                            b.Slots.Where(
+                                s => search.IncludeCancelled || s.Status != SlotStatus.Cancelled
+                            )
+                    )
+                    .ThenInclude(s => s.Pitch)
+                    .Where(b => bookingIds.Contains(b.Id))
                     .ToListAsync();
 
                 _logger.LogInformation(
-                    "Loaded {SlotCount} slots for calendar range {From}-{To} in {ElapsedMs}ms",
-                    slots.Count,
+                    "Loaded {BookingCount} bookings for calendar range {From}-{To} in {ElapsedMs}ms",
+                    bookings.Count,
                     search.From,
                     search.To,
                     stopwatch.ElapsedMilliseconds
                 );
-
-                var bookings = slots.Select(s => s.Booking).DistinctBy(b => b.Id);
 
                 return Right(ImmutableArray.Create(bookings.Select(x => x.ToDomain()).ToArray()));
             }

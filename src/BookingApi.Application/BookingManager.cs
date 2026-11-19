@@ -83,7 +83,8 @@ public class BookingManager : IBookingManager
                             Guid.NewGuid(),
                             command.Name,
                             Contact.EmptyWithId(command.ContactId),
-                            slots
+                            slots,
+                            sessions.Count > 1 ? BookingType.Repeated : BookingType.Single
                         );
                         var newBooking = await _bookingGateway.CreateAsync(booking);
 
@@ -225,7 +226,8 @@ public class BookingManager : IBookingManager
                     Guid.NewGuid(),
                     command.Name,
                     Contact.EmptyWithId(command.ContactId),
-                    slots
+                    slots,
+                    BookingType.Camp
                 );
                 var newBooking = await _bookingGateway.CreateAsync(booking);
 

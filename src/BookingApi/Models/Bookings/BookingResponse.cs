@@ -8,7 +8,8 @@ public record BookingResponse(
     Guid Id,
     string Name,
     ContactResponse Contact,
-    SlotResponse[] Slots
+    SlotResponse[] Slots,
+    BookingType Type
 );
 
 public static class BookingExtensions
@@ -19,7 +20,8 @@ public static class BookingExtensions
             b.Id,
             b.Name,
             b.Contact.ToResponse(),
-            b.Slots.Select(slot => slot.ToResponse()).ToArray()
+            b.Slots.Select(slot => slot.ToResponse()).ToArray(),
+            b.Type
             );
     }
 }
