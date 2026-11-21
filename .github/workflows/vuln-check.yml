@@ -1,0 +1,26 @@
+name: Vulnerability check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * *'   # daily at 6:00 UTC
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: src/global.json
+      - run: dotnet restore
+      - name: List vulnerable packages
+        run: dotnet list package --vulnerable --include-transitive
+      - name: Fail on vulnerable packages (NuGetAudit)
+        run: dotnet restore --force -warnaserror:NU1901,NU1902,NU1903,NU1904,NU1905
