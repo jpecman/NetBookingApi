@@ -140,7 +140,7 @@ namespace BookingApi.Tests
 
             var result = await Controller.PostAsync(request);
 
-            Assert.IsNotInstanceOfType(result.Result, typeof(OkObjectResult));
+            Assert.IsInstanceOfType(result.Result, typeof(NotFoundResult));
         }
 
         // The same contact email exists once per tenant (seeded in SeedAdditionalAsync).

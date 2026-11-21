@@ -1,257 +1,250 @@
-// using BookingApi.Application.Commands;
-// using BookingApi.Controllers;
-// using BookingApi.Models.Bookings;
-// using BookingApi.Models.Slots;
-// using BookingApi.Tests.Fixtures;
+using BookingApi.Application.Commands;
+using BookingApi.Controllers;
+using BookingApi.Models.Bookings;
+using BookingApi.Models.Slots;
+using BookingApi.Tests.Fixtures;
 
-// using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
-// namespace BookingApi.Tests
-// {
-//     [TestClass]
-//     public class BookingUpdateTests : BookingApiTestBase
-//     {
-//         private SlotController SlotController => Resolve<SlotController>();
+namespace BookingApi.Tests
+{
+    [TestClass]
+    public class BookingUpdateTests : BookingApiTestBase
+    {
+        private SlotController SlotController => Resolve<SlotController>();
 
-//         private async Task<BookingResponse> CreateBookingAsync(
-//             string name,
-//             int hour,
-//             bool wholeField
-//         )
-//         {
-//             var request = new BookingRequest(
-//                 name,
-//                 DateTime.Now.Date.AddHours(hour),
-//                 (int)BookingDurationType.OneAndHalfHour,
-//                 1000,
-//                 wholeField,
-//                 ContactId,
-//                 FieldId
-//             );
+        private async Task<BookingResponse> CreateBookingAsync(
+            string name,
+            int hour,
+            bool wholeField
+        )
+        {
+            var request = new BookingRequest(
+                name,
+                DateTime.Now.Date.AddHours(hour),
+                (int)BookingDurationType.OneAndHalfHour,
+                1000,
+                wholeField,
+                ContactId,
+                FieldId
+            );
 
-//             var result = (await Controller.PostAsync(request)).Result as OkObjectResult;
-//             Assert.IsNotNull(result);
-//             return (BookingResponse)result.Value!;
-//         }
+            var result = (await Controller.PostAsync(request)).Result as OkObjectResult;
+            Assert.IsNotNull(result);
+            return (BookingResponse)result.Value!;
+        }
 
-//         private static SlotUpdateRequest ToUpdate(
-//             SlotResponse slot,
-//             DateTime? from = null,
-//             DateTime? to = null,
-//             string? name = null,
-//             decimal? price = null
-//         ) =>
-//             new(
-//                 slot.Id,
-//                 // slot.PitchId,
-//                 // slot.BookingId,
-//                 // from ?? slot.From,
-//                 // to ?? slot.To,
-//                 name ?? slot.Name,
-//                 price ?? slot.Price
-//             );
+        private static SlotUpdateRequest ToUpdate(
+            SlotResponse slot,
+            string? name = null,
+            decimal? price = null
+        ) => new(slot.Id, name ?? slot.Name, price ?? slot.Price);
 
-//         private async Task<ActionResult<SlotResponse[]>> PatchAsync(
-//             DateTime from,
-//             DateTime to,
-//             params SlotUpdateRequest[] slots
-//         ) => await SlotController.PatchAsync(new UpdateSlotsRequest(from, to, slots));
+        private async Task<ActionResult<SlotResponse[]>> PatchAsync(
+            DateTime from,
+            DateTime to,
+            params SlotUpdateRequest[] slots
+        ) => await SlotController.PatchAsync(new UpdateSlotsRequest(from, to, slots));
 
-//         private static SlotResponse[] Ok(ActionResult<SlotResponse[]> result) =>
-//             (SlotResponse[])((OkObjectResult)result.Result!).Value!;
+        // Keeps the slots at their current time.
+        private Task<ActionResult<SlotResponse[]>> PatchInPlaceAsync(
+            SlotResponse at,
+            params SlotUpdateRequest[] slots
+        ) => PatchAsync(at.From, at.To, slots);
 
-//         // Slots still carrying the booking name follow a rename; the contact can be reassigned.
-//         [TestMethod]
-//         public async Task UpdateBooking_UncustomisedSlots_FollowRename()
-//         {
-//             var booking = await CreateBookingAsync("Original", 10, wholeField: true);
+        private static SlotResponse[] Ok(ActionResult<SlotResponse[]> result) =>
+            (SlotResponse[])((OkObjectResult)result.Result!).Value!;
 
-//             var result = await Controller.PutAsync(
-//                 booking.Id,
-//                 new UpdateBookingRequest("Renamed", OtherContactId)
-//             );
-//             var updated = (BookingResponse)((OkObjectResult)result.Result!).Value!;
+        // Slots still carrying the booking name follow a rename; the contact can be reassigned.
+        [TestMethod]
+        public async Task UpdateBooking_UncustomisedSlots_FollowRename()
+        {
+            var booking = await CreateBookingAsync("Original", 10, wholeField: true);
 
-//             Assert.AreEqual("Renamed", updated.Name);
-//             Assert.AreEqual(OtherContactId, updated.Contact.Id);
-//             Assert.IsTrue(updated.Slots.All(s => s.Name == "Renamed"));
-//         }
+            var result = await Controller.PutAsync(
+                booking.Id,
+                new UpdateBookingRequest("Renamed", OtherContactId)
+            );
+            var updated = (BookingResponse)((OkObjectResult)result.Result!).Value!;
 
-//         [TestMethod]
-//         public async Task UpdateBooking_CustomSlotName_WithoutFlag_Conflicts()
-//         {
-//             var booking = await CreateBookingAsync("Original", 10, wholeField: true);
-//             Ok(await PatchAsync(ToUpdate(booking.Slots[0], name: "Custom")));
+            Assert.AreEqual("Renamed", updated.Name);
+            Assert.AreEqual(OtherContactId, updated.Contact.Id);
+            Assert.IsTrue(updated.Slots.All(s => s.Name == "Renamed"));
+        }
 
-//             var result = await Controller.PutAsync(
-//                 booking.Id,
-//                 new UpdateBookingRequest("Renamed", ContactId)
-//             );
+        [TestMethod]
+        public async Task UpdateBooking_CustomSlotName_WithoutFlag_Conflicts()
+        {
+            var booking = await CreateBookingAsync("Original", 10, wholeField: true);
+            Ok(await PatchInPlaceAsync(booking.Slots[0], ToUpdate(booking.Slots[0], name: "Custom")));
 
-//             Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
+            var result = await Controller.PutAsync(
+                booking.Id,
+                new UpdateBookingRequest("Renamed", ContactId)
+            );
 
-//             var reloaded = (BookingResponse)
-//                 ((OkObjectResult)(await Controller.GetAsync(booking.Id)).Result!).Value!;
-//             Assert.AreEqual("Original", reloaded.Name);
-//             Assert.IsTrue(reloaded.Slots.Any(s => s.Name == "Custom"));
-//         }
+            Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
 
-//         [TestMethod]
-//         public async Task UpdateBooking_CustomSlotName_WithFlag_Overwrites()
-//         {
-//             var booking = await CreateBookingAsync("Original", 10, wholeField: true);
-//             Ok(await PatchAsync(ToUpdate(booking.Slots[0], name: "Custom")));
+            var reloaded = (BookingResponse)
+                ((OkObjectResult)(await Controller.GetAsync(booking.Id)).Result!).Value!;
+            Assert.AreEqual("Original", reloaded.Name);
+            Assert.IsTrue(reloaded.Slots.Any(s => s.Name == "Custom"));
+        }
 
-//             var result = await Controller.PutAsync(
-//                 booking.Id,
-//                 new UpdateBookingRequest("Renamed", ContactId, OverwriteSlotNames: true)
-//             );
-//             var updated = (BookingResponse)((OkObjectResult)result.Result!).Value!;
+        [TestMethod]
+        public async Task UpdateBooking_CustomSlotName_WithFlag_Overwrites()
+        {
+            var booking = await CreateBookingAsync("Original", 10, wholeField: true);
+            Ok(await PatchInPlaceAsync(booking.Slots[0], ToUpdate(booking.Slots[0], name: "Custom")));
 
-//             Assert.IsTrue(updated.Slots.All(s => s.Name == "Renamed"));
-//         }
+            var result = await Controller.PutAsync(
+                booking.Id,
+                new UpdateBookingRequest("Renamed", ContactId, OverwriteSlotNames: true)
+            );
+            var updated = (BookingResponse)((OkObjectResult)result.Result!).Value!;
 
-//         // Changing only the contact never touches slot names, so it can't conflict.
-//         [TestMethod]
-//         public async Task UpdateBooking_ContactOnly_WithCustomSlotName_Succeeds()
-//         {
-//             var booking = await CreateBookingAsync("Original", 10, wholeField: true);
-//             Ok(await PatchAsync(ToUpdate(booking.Slots[0], name: "Custom")));
+            Assert.IsTrue(updated.Slots.All(s => s.Name == "Renamed"));
+        }
 
-//             var result = await Controller.PutAsync(
-//                 booking.Id,
-//                 new UpdateBookingRequest("Original", OtherContactId)
-//             );
-//             var updated = (BookingResponse)((OkObjectResult)result.Result!).Value!;
+        // Changing only the contact never touches slot names, so it can't conflict.
+        [TestMethod]
+        public async Task UpdateBooking_ContactOnly_WithCustomSlotName_Succeeds()
+        {
+            var booking = await CreateBookingAsync("Original", 10, wholeField: true);
+            Ok(await PatchInPlaceAsync(booking.Slots[0], ToUpdate(booking.Slots[0], name: "Custom")));
 
-//             Assert.AreEqual(OtherContactId, updated.Contact.Id);
-//             Assert.IsTrue(updated.Slots.Any(s => s.Name == "Custom"));
-//         }
+            var result = await Controller.PutAsync(
+                booking.Id,
+                new UpdateBookingRequest("Original", OtherContactId)
+            );
+            var updated = (BookingResponse)((OkObjectResult)result.Result!).Value!;
 
-//         [TestMethod]
-//         public async Task UpdateBooking_UnknownContact_IsNotFound()
-//         {
-//             var booking = await CreateBookingAsync("Original", 10, wholeField: true);
+            Assert.AreEqual(OtherContactId, updated.Contact.Id);
+            Assert.IsTrue(updated.Slots.Any(s => s.Name == "Custom"));
+        }
 
-//             var result = await Controller.PutAsync(
-//                 booking.Id,
-//                 new UpdateBookingRequest("Renamed", Guid.NewGuid())
-//             );
+        [TestMethod]
+        public async Task UpdateBooking_UnknownContact_IsNotFound()
+        {
+            var booking = await CreateBookingAsync("Original", 10, wholeField: true);
 
-//             Assert.IsInstanceOfType(result.Result, typeof(NotFoundResult));
-//         }
+            var result = await Controller.PutAsync(
+                booking.Id,
+                new UpdateBookingRequest("Renamed", Guid.NewGuid())
+            );
 
-//         // Moving a whole-field session means sending the slot on every pitch.
-//         [TestMethod]
-//         public async Task PatchSlots_MovesWholeFieldSession()
-//         {
-//             var booking = await CreateBookingAsync("Move me", 10, wholeField: true);
+            Assert.IsInstanceOfType(result.Result, typeof(NotFoundResult));
+        }
 
-//             var updated = Ok(
-//                 await PatchAsync(
-//                     booking.Slots
-//                         .Select(s => ToUpdate(s, s.From.AddHours(2), s.To.AddHours(2), price: 700))
-//                         .ToArray()
-//                 )
-//             );
+        // Without isWholeField, moving a whole-field session means sending the slot on every pitch.
+        [TestMethod]
+        public async Task PatchSlots_MovesWholeFieldSession()
+        {
+            var booking = await CreateBookingAsync("Move me", 10, wholeField: true);
+            var from = booking.Slots[0].From.AddHours(2);
+            var to = booking.Slots[0].To.AddHours(2);
 
-//             Assert.AreEqual(2, updated.Length);
-//             Assert.IsTrue(updated.All(s => s.From == booking.Slots[0].From.AddHours(2)));
-//             Assert.IsTrue(updated.All(s => s.To == booking.Slots[0].To.AddHours(2)));
-//             Assert.IsTrue(updated.All(s => s.Price == 700));
-//         }
+            var updated = Ok(
+                await PatchAsync(
+                    from,
+                    to,
+                    booking.Slots.Select(s => ToUpdate(s, price: 700)).ToArray()
+                )
+            );
 
-//         // Repricing without moving must not conflict with the session's own slots.
-//         [TestMethod]
-//         public async Task PatchSlots_PriceOnly_Succeeds()
-//         {
-//             var booking = await CreateBookingAsync("Reprice me", 10, wholeField: true);
+            Assert.AreEqual(2, updated.Length);
+            Assert.IsTrue(updated.All(s => s.From == from));
+            Assert.IsTrue(updated.All(s => s.To == to));
+            Assert.IsTrue(updated.All(s => s.Price == 700));
+        }
 
-//             var updated = Ok(await PatchAsync(ToUpdate(booking.Slots[0], price: 750)));
+        // Repricing without moving must not conflict with the session's own slots.
+        [TestMethod]
+        public async Task PatchSlots_PriceOnly_Succeeds()
+        {
+            var booking = await CreateBookingAsync("Reprice me", 10, wholeField: true);
 
-//             Assert.AreEqual(750, updated.Single().Price);
-//         }
+            var updated = Ok(
+                await PatchInPlaceAsync(booking.Slots[0], ToUpdate(booking.Slots[0], price: 750))
+            );
 
-//         [TestMethod]
-//         public async Task PatchSlots_DifferentNamesPerSlot_AreKept()
-//         {
-//             var booking = await CreateBookingAsync("Names", 10, wholeField: true);
+            Assert.AreEqual(750, updated.Single().Price);
+        }
 
-//             var updated = Ok(
-//                 await PatchAsync(
-//                     ToUpdate(booking.Slots[0], name: "Team A"),
-//                     ToUpdate(booking.Slots[1], name: "Team B")
-//                 )
-//             );
+        [TestMethod]
+        public async Task PatchSlots_DifferentNamesPerSlot_AreKept()
+        {
+            var booking = await CreateBookingAsync("Names", 10, wholeField: true);
 
-//             CollectionAssert.AreEquivalent(
-//                 new[] { "Team A", "Team B" },
-//                 updated.Select(s => s.Name).ToArray()
-//             );
-//         }
+            var updated = Ok(
+                await PatchInPlaceAsync(
+                    booking.Slots[0],
+                    ToUpdate(booking.Slots[0], name: "Team A"),
+                    ToUpdate(booking.Slots[1], name: "Team B")
+                )
+            );
 
-//         [TestMethod]
-//         public async Task PatchSlots_MovingOntoAnotherBooking_Conflicts()
-//         {
-//             var first = await CreateBookingAsync("First", 10, wholeField: true);
-//             var second = await CreateBookingAsync("Second", 14, wholeField: true);
+            CollectionAssert.AreEquivalent(
+                new[] { "Team A", "Team B" },
+                updated.Select(s => s.Name).ToArray()
+            );
+        }
 
-//             var result = await PatchAsync(
-//                 second.Slots
-//                     .Select(s => ToUpdate(s, first.Slots[0].From, first.Slots[0].To))
-//                     .ToArray()
-//             );
+        [TestMethod]
+        public async Task PatchSlots_MovingOntoAnotherBooking_Conflicts()
+        {
+            var first = await CreateBookingAsync("First", 10, wholeField: true);
+            var second = await CreateBookingAsync("Second", 14, wholeField: true);
 
-//             Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
-//         }
+            var result = await PatchAsync(
+                first.Slots[0].From,
+                first.Slots[0].To,
+                second.Slots.Select(s => ToUpdate(s)).ToArray()
+            );
 
-//         // A half-field slot moved so it partly overlaps the other pitch's session breaks the
-//         // field alignment invariant.
-//         [TestMethod]
-//         public async Task PatchSlots_MisalignedHalfFieldMove_Conflicts()
-//         {
-//             await CreateBookingAsync("Other half", 10, wholeField: false);
-//             var booking = await CreateBookingAsync("Mine", 14, wholeField: false);
-//             var slot = booking.Slots.Single();
-//             var from = DateTime.Now.Date.AddHours(10).AddMinutes(30);
+            Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
+        }
 
-//             var result = await PatchAsync(ToUpdate(slot, from, from.AddHours(1)));
+        // A half-field slot moved so it partly overlaps the other pitch's session breaks the
+        // field alignment invariant.
+        [TestMethod]
+        public async Task PatchSlots_MisalignedHalfFieldMove_Conflicts()
+        {
+            await CreateBookingAsync("Other half", 10, wholeField: false);
+            var booking = await CreateBookingAsync("Mine", 14, wholeField: false);
+            var slot = booking.Slots.Single();
+            var from = DateTime.Now.Date.AddHours(10).AddMinutes(30);
 
-//             Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
-//         }
+            var result = await PatchAsync(from, from.AddHours(1), ToUpdate(slot));
 
-//         // [TestMethod]
-//         // public async Task PatchSlots_WrongPitchOrBooking_Conflicts()
-//         // {
-//         //     var booking = await CreateBookingAsync("Stale", 10, wholeField: true);
-//         //     var slot = booking.Slots[0];
+            Assert.IsInstanceOfType(result.Result, typeof(ConflictObjectResult));
+        }
 
-//         //     var wrongPitch = await PatchAsync(ToUpdate(slot) with { PitchId = booking.Slots[1].PitchId });
-//         //     var wrongBooking = await PatchAsync(ToUpdate(slot) with { BookingId = Guid.NewGuid() });
+        [TestMethod]
+        public async Task PatchSlots_UnknownId_IsNotFound()
+        {
+            var booking = await CreateBookingAsync("Unknown", 10, wholeField: true);
 
-//         //     Assert.IsInstanceOfType(wrongPitch.Result, typeof(ConflictObjectResult));
-//         //     Assert.IsInstanceOfType(wrongBooking.Result, typeof(ConflictObjectResult));
-//         // }
+            var result = await PatchInPlaceAsync(
+                booking.Slots[0],
+                ToUpdate(booking.Slots[0]) with { Id = Guid.NewGuid() }
+            );
 
-//         [TestMethod]
-//         public async Task PatchSlots_UnknownId_IsNotFound()
-//         {
-//             var booking = await CreateBookingAsync("Unknown", 10, wholeField: true);
+            Assert.IsInstanceOfType(result.Result, typeof(NotFoundResult));
+        }
 
-//             var result = await PatchAsync(ToUpdate(booking.Slots[0]) with { Id = Guid.NewGuid() });
+        [TestMethod]
+        public async Task PatchSlots_CancelledSlot_IsBadRequest()
+        {
+            var booking = await CreateBookingAsync("Cancelled", 10, wholeField: true);
+            await SlotController.DeleteAsync(booking.Slots[0].Id);
 
-//             Assert.IsInstanceOfType(result.Result, typeof(NotFoundResult));
-//         }
+            var result = await PatchInPlaceAsync(
+                booking.Slots[0],
+                ToUpdate(booking.Slots[0], price: 1)
+            );
 
-//         [TestMethod]
-//         public async Task PatchSlots_CancelledSlot_IsBadRequest()
-//         {
-//             var booking = await CreateBookingAsync("Cancelled", 10, wholeField: true);
-//             await SlotController.DeleteAsync(booking.Slots[0].Id);
-
-//             var result = await PatchAsync(ToUpdate(booking.Slots[0], price: 1));
-
-//             Assert.IsInstanceOfType(result.Result, typeof(BadRequestObjectResult));
-//         }
-//     }
-// }
+            Assert.IsInstanceOfType(result.Result, typeof(BadRequestObjectResult));
+        }
+    }
+}

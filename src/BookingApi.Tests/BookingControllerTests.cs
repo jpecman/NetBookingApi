@@ -65,7 +65,7 @@ namespace BookingApi.Tests
             );
 
             var secondResult = await Controller.PostAsync(duplicate);
-            Assert.IsNotInstanceOfType(secondResult.Result, typeof(OkObjectResult));
+            Assert.IsInstanceOfType(secondResult.Result, typeof(ConflictObjectResult));
         }
 
         // Searching with a ContactId filter excludes bookings belonging to other contacts.
