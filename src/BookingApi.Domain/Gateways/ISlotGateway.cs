@@ -21,8 +21,23 @@ public interface ISlotGateway
         IReadOnlyCollection<Guid> ids
     );
 
+    /// <summary>The booking's active slots with exactly this time range.</summary>
+    Task<Either<Error, ImmutableArray<Slot>>> GetSessionSlotsAsync(
+        Guid bookingId,
+        DateTime from,
+        DateTime to
+    );
+
     Task<Either<Error, Unit>> CancelAsync(Guid slotId, string? cancellationReason);
 
-    /// <summary>Writes name, time range and price of every slot in one transaction.</summary>
-    Task<Either<Error, ImmutableArray<Slot>>> UpdateAsync(IReadOnlyList<Slot> slots);
+    /// <summary>
+    /// In one transaction: writes name, time range and price of every updated slot, inserts the
+    /// added slots (each into its BookingId) and deletes the given slots. Returns the updated
+    /// and added slots.
+    /// </summary>
+    Task<Either<Error, ImmutableArray<Slot>>> UpdateAsync(
+        IReadOnlyList<Slot> updated,
+        IReadOnlyList<Slot> added,
+        IReadOnlyCollection<Guid> deletedIds
+    );
 }

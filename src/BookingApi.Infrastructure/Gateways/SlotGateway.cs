@@ -152,14 +152,64 @@ public class SlotGateway : Gateway, ISlotGateway
         }
     }
 
-    public async Task<Either<Error, ImmutableArray<Slot>>> UpdateAsync(IReadOnlyList<Slot> slots)
+    public async Task<Either<Error, ImmutableArray<Slot>>> GetSessionSlotsAsync(
+        Guid bookingId,
+        DateTime from,
+        DateTime to
+    )
+    {
+        try
+        {
+            var fromUtc = from.ToUniversalTime();
+            var toUtc = to.ToUniversalTime();
+            var slots = await _dbContext.Slots
+                .Where(
+                    s =>
+                        s.BookingId == bookingId
+                        && s.Status != SlotStatus.Cancelled
+                        && s.Duration.LowerBound == fromUtc
+                        && s.Duration.UpperBound == toUtc
+                )
+                .ToListAsync();
+
+            return Right(slots.Select(s => s.ToDomain()).ToImmutableArray());
+        }
+        catch (Exception ex)
+        {
+            return CreateErrorResponse<ImmutableArray<Slot>>(ex, ErrorType.General);
+        }
+    }
+
+    public async Task<Either<Error, ImmutableArray<Slot>>> UpdateAsync(
+        IReadOnlyList<Slot> updated,
+        IReadOnlyList<Slot> added,
+        IReadOnlyCollection<Guid> deletedIds
+    )
     {
         Func<IReadOnlyList<Slot>, Task<ImmutableArray<Slot>>> func = async updates =>
         {
-            var ids = updates.Select(s => s.Id).ToList();
+            var ids = updates.Select(s => s.Id).Concat(deletedIds).ToList();
             var entities = await _dbContext.Slots
                 .Where(s => ids.Contains(s.Id))
                 .ToDictionaryAsync(s => s.Id);
+
+            foreach (var id in deletedIds)
+            {
+                if (!entities.TryGetValue(id, out var entity))
+                    throw new InvalidOperationException($"Slot {id} not found.");
+
+                _dbContext.Slots.Remove(entity);
+            }
+
+            var addedEntities = added
+                .Select(slot =>
+                {
+                    var entity = slot.ToEntity();
+                    entity.BookingId = slot.BookingId;
+                    return entity;
+                })
+                .ToList();
+            _dbContext.Slots.AddRange(addedEntities);
 
             foreach (var slot in updates)
             {
@@ -180,9 +230,12 @@ public class SlotGateway : Gateway, ISlotGateway
             // surface as an exclusion violation, which Execute maps to Conflict.
             await _dbContext.SaveChangesAsync();
 
-            return updates.Select(s => entities[s.Id].ToDomain()).ToImmutableArray();
+            return updates
+                .Select(s => entities[s.Id].ToDomain())
+                .Concat(addedEntities.Select(e => e.ToDomain()))
+                .ToImmutableArray();
         };
 
-        return await Execute(func, slots);
+        return await Execute(func, updated);
     }
 }
